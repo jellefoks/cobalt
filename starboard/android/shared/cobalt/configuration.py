@@ -65,10 +65,6 @@ class CobaltAndroidConfiguration(cobalt_configuration.CobaltConfiguration):
       ],
       'crypto_unittests': ['P224.*'],
       'renderer_test': [
-          # TODO(b/236034292): These tests load the wrong fonts sometimes.
-          'PixelTest.SimpleTextInRed40PtChineseFont',
-          'PixelTest.SimpleTextInRed40PtThaiFont',
-
           # The Roboto variable font looks slightly different than the static
           # font version. Android 12 and up use font variations for Roboto.
           'PixelTest.ScalingUpAnOpacityFilterTextDoesNotPixellate',
