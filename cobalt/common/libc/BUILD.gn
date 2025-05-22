@@ -16,6 +16,7 @@ static_library("libc") {
   sources = [ "no_destructor.h" ]
   if (!is_android) {
     sources += [
+      "icutime.cc",
       "stdlib/environment.cc",
       "time/tzset.cc",
     ]
