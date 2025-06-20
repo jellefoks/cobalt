@@ -44,9 +44,6 @@ initstate
 ioctl
 link
 localeconv
-localtime
-localtime_r
-mktime
 newlocale
 openlog
 posix_fadvise
@@ -69,7 +66,6 @@ stdin
 stdout
 syscall
 syslog
-timegm
 timerfd_create
 timerfd_settime
 tmpfile
