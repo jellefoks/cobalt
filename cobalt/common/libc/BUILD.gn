@@ -13,11 +13,13 @@
 # limitations under the License.
 
 static_library("libc") {
-  sources = [
-    "no_destructor.h",
-    "stdlib/environment.cc",
-    "time/tzset.cc",
-  ]
+  sources = [ "no_destructor.h" ]
+  if (!is_android) {
+    sources += [
+      "stdlib/environment.cc",
+      "time/tzset.cc",
+    ]
+  }
   deps = [
     "//cobalt/common/libc/tz",
     "//starboard:starboard_headers_only",
@@ -33,7 +35,9 @@ static_library("libc") {
 source_set("libc_test") {
   testonly = true
 
-  sources = [ "time/tzset_test.cc" ]
+  if (!is_android) {
+    sources = [ "time/tzset_test.cc" ]
+  }
 
   deps = [
     ":libc",
