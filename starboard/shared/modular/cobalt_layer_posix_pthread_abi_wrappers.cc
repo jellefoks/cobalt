@@ -14,6 +14,8 @@
 
 #include <pthread.h>
 
+#include "starboard/common/log.h"
+
 extern "C" {
 
 int __abi_wrap_pthread_mutex_destroy(pthread_mutex_t* mutex);
@@ -45,6 +47,12 @@ int pthread_mutex_unlock(pthread_mutex_t* mutex) {
 int __abi_wrap_pthread_mutex_trylock(pthread_mutex_t* mutex);
 
 int pthread_mutex_trylock(pthread_mutex_t* mutex) {
+  if (mutex) {
+    uint32_t* p = reinterpret_cast<uint32_t*>(mutex);
+    if (p[10] != 0 && p[10] != 1 && p[10] != 2) {
+       SB_LOG(ERROR) << "Cobalt layer: mutex at " << mutex << " state is " << p[10];
+    }
+  }
   return __abi_wrap_pthread_mutex_trylock(mutex);
 }
 

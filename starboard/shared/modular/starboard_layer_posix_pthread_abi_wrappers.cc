@@ -37,6 +37,10 @@ static_assert(sizeof(musl_pthread_mutex_t) >= sizeof(PosixMutexPrivate),
               "sizeof(musl_pthread_mutex_t) must be larger or equal to "
               "sizeof(PosixMutexPrivate)");
 
+static_assert(__builtin_offsetof(PosixMutexPrivate, initialized_state) ==
+                  sizeof(pthread_mutex_t),
+              "initialized_state must be immediately after mutex");
+
 typedef struct PosixMutexAttrPrivate {
   pthread_mutexattr_t mutex_attr;
 } PosixMutexAttrPrivate;
@@ -193,9 +197,19 @@ int __abi_wrap_pthread_mutex_lock(musl_pthread_mutex_t* mutex) {
     return MUSL_EINVAL;
   }
 
-  if (!EnsureInitialized(&(INTERNAL_MUTEX(mutex)->initialized_state))) {
+  PosixMutexPrivate* private_mutex = INTERNAL_MUTEX(mutex);
+  SB_DCHECK(((uintptr_t)private_mutex & 7) == 0)
+      << "Mutex is not aligned: " << mutex;
+
+  int state_val = private_mutex->initialized_state.load(std::memory_order_relaxed);
+  if (state_val != 0 && state_val != 1 && state_val != 2) {
+    SB_LOG(ERROR) << "Corrupted mutex state " << state_val << " at " << mutex
+                  << " (offset " << __builtin_offsetof(PosixMutexPrivate, initialized_state) << ")";
+  }
+
+  if (!EnsureInitialized(&(private_mutex->initialized_state))) {
     *PTHREAD_INTERNAL_MUTEX(mutex) = PTHREAD_MUTEX_INITIALIZER;
-    SetInitialized(&(INTERNAL_MUTEX(mutex)->initialized_state));
+    SetInitialized(&(private_mutex->initialized_state));
   }
 
   int ret = pthread_mutex_lock(PTHREAD_INTERNAL_MUTEX(mutex));
@@ -220,9 +234,19 @@ int __abi_wrap_pthread_mutex_trylock(musl_pthread_mutex_t* mutex) {
     return MUSL_EINVAL;
   }
 
-  if (!EnsureInitialized(&(INTERNAL_MUTEX(mutex)->initialized_state))) {
+  PosixMutexPrivate* private_mutex = INTERNAL_MUTEX(mutex);
+  SB_DCHECK(((uintptr_t)private_mutex & 7) == 0)
+      << "Mutex is not aligned: " << mutex;
+
+  int state_val = private_mutex->initialized_state.load(std::memory_order_relaxed);
+  if (state_val != 0 && state_val != 1 && state_val != 2) {
+    SB_LOG(ERROR) << "Corrupted mutex state " << state_val << " at " << mutex
+                  << " (offset " << __builtin_offsetof(PosixMutexPrivate, initialized_state) << ")";
+  }
+
+  if (!EnsureInitialized(&(private_mutex->initialized_state))) {
     *PTHREAD_INTERNAL_MUTEX(mutex) = PTHREAD_MUTEX_INITIALIZER;
-    SetInitialized(&(INTERNAL_MUTEX(mutex)->initialized_state));
+    SetInitialized(&(private_mutex->initialized_state));
   }
 
   int ret = pthread_mutex_trylock(PTHREAD_INTERNAL_MUTEX(mutex));
