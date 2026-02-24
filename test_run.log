@@ -1,0 +1,114 @@
+[cobalt_unittest/3376041:0311/170530.562226(UTC):INFO:audio_sink_type_dispatcher.cc(32)] Use ALSA
+[TimeZoneMonitor/3376200:0311/170530.563782(UTC):INFO:time_zone_monitor.cc(156)] Monitoring /etc/localtime for time zone changes.
+[3376041:/3376041:ERROR:base/starboard/debugger_starboard.cc:27] Not implemented reached in void base::debug::VerifyDebugger()
+Note: Google Test filter = SplashScreenTest.*:LifecycleTest.*
+[==========] Running 17 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from LifecycleTest
+[ RUN      ] LifecycleTest.StartupVisible
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:ThreadPoolForegroundWorker/3376206:ERROR:base/files/file_path_watcher_stub.cc:34] Not implemented reached in virtual bool base::(anonymous namespace)::FilePathWatcherImpl::Watch(const FilePath &, Type, const FilePathWatcher::Callback &)
+[3376041:ThreadPoolForegroundWorker/3376206:ERROR:net/dns/dns_config_service_linux.cc:352] DNS config (resolv.conf) watch failed to start.
+[3376041:ThreadPoolForegroundWorker/3376206:ERROR:net/dns/dns_config_service_linux.cc:361] DNS nsswitch.conf watch failed to start.
+[3376041:ThreadPoolForegroundWorker/3376206:ERROR:net/dns/dns_config_service_linux.cc:370] DNS hosts watch failed to start.
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:ThreadPoolForegroundWorker/3376209:WARNING:net/dns/dns_config_service_linux.cc:431] Failed to read DnsConfig.
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:ThreadPoolForegroundWorker/3376206:ERROR:base/process/process_metrics_posix_starboard_stub.cc:27] Not implemented reached in size_t base::GetMaxFds()
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:ThreadPoolForegroundWorker/3376206:ERROR:base/process/process_metrics_posix_starboard_stub.cc:27] Not implemented reached in size_t base::GetMaxFds()
+[3376041:/3376041:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] LifecycleTest.StartupVisible (36 ms)
+[ RUN      ] LifecycleTest.StartupHidden
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] LifecycleTest.StartupHidden (25 ms)
+[ RUN      ] LifecycleTest.Reveal
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] LifecycleTest.Reveal (26 ms)
+[ RUN      ] LifecycleTest.RedundantReveal
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] LifecycleTest.RedundantReveal (24 ms)
+[----------] 4 tests from LifecycleTest (114 ms total)
+
+[----------] 13 tests from SplashScreenTest
+[ RUN      ] SplashScreenTest.ParallelLoading
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.ParallelLoading (47 ms)
+[ RUN      ] SplashScreenTest.EarlyMainContentLoad
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.EarlyMainContentLoad (48 ms)
+[ RUN      ] SplashScreenTest.SplashClosesBeforeMainLoad
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.SplashClosesBeforeMainLoad (34 ms)
+[ RUN      ] SplashScreenTest.MainContentLoadAfterSplashEnd
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.MainContentLoadAfterSplashEnd (39 ms)
+[ RUN      ] SplashScreenTest.DestroyShellWhileSwitching
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.DestroyShellWhileSwitching (44 ms)
+[ RUN      ] SplashScreenTest.MainContentLoadFailure
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.MainContentLoadFailure (44 ms)
+[ RUN      ] SplashScreenTest.NoSplashScreen
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.NoSplashScreen (33 ms)
+[ RUN      ] SplashScreenTest.SplashClosesDuringDelay
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.SplashClosesDuringDelay (52 ms)
+[ RUN      ] SplashScreenTest.MultipleLoadProgressEvents
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.MultipleLoadProgressEvents (46 ms)
+[ RUN      ] SplashScreenTest.SplashTimeoutExceededBeforeMainLoad
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.SplashTimeoutExceededBeforeMainLoad (43 ms)
+[ RUN      ] SplashScreenTest.MainContentLoadBeforeSplashStart
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.MainContentLoadBeforeSplashStart (44 ms)
+[ RUN      ] SplashScreenTest.MainContentDidStopLoadingFallback
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.MainContentDidStopLoadingFallback (48 ms)
+[ RUN      ] SplashScreenTest.PreloadSkipsSplashScreen
+[3376041:/3376041:INFO:cobalt/shell/browser/shell.cc:496] JS injection for filename: html_media_element_extension_on_java_bridge.js
+[3376041:/3376041:WARNING:content/browser/renderer_host/render_frame_host_impl.cc:3625] Creating unbound remote associated interface provider
+[3376041:/3376041:INFO:cobalt/shell/browser/shell.cc:464] Navigated to about:blank
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[3376041:NetworkService/3376210:ERROR:net/base/network_change_notifier_starboard.h:25] Not implemented reached in virtual ConnectionType net::NetworkChangeNotifierStarboard::GetCurrentConnectionType() const
+[       OK ] SplashScreenTest.PreloadSkipsSplashScreen (49 ms)
+[----------] 13 tests from SplashScreenTest (580 ms total)
+
+[----------] Global test environment tear-down
+[==========] 17 tests from 2 test suites ran. (695 ms total)
+[  PASSED  ] 17 tests.

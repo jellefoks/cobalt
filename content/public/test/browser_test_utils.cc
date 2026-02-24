@@ -4595,7 +4595,7 @@ void SetCapturedSurfaceControllerFactoryForTesting(
   MediaStreamManager::GetInstance()
       ->SetCapturedSurfaceControllerFactoryForTesting(wrapped_factory);
 }
-#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
+#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS) && BUILDFLAG(ENABLE_SCREEN_CAPTURE)
 
 std::optional<int> GetDOMNodeId(content::RenderFrameHost& rfh,
                                 std::string_view query_selector) {

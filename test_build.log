@@ -1,0 +1,9 @@
+Proxy started successfully.
+ninja: Entering directory `out/linux-x64x11-modular_devel'
+[36.256 sec | 3+j3+1=6 ?ps] CXX obj/cobalt/common/cobalt_main_delegate.o
+[53.540 sec | 3+j2+2=6 0.1ps] CXX obj/cobalt/cobalt_unittests/lifecycle_unittest.o
+[70.683 sec | 3+j1+3=6 0.1ps] CXX obj/cobalt/cobalt_unittests/splash_screen_unittest.o
+[83.396 sec | 2+j1+4=6 0.1ps] SOLINK ./libcobalt_unittests.so
+[83.519 sec | 1+j1+5=6 0.1ps] LINK starboard/cobalt_unittests_loader
+[83.525 sec | 0+j1+6=6 0.1ps] COPY starboard/cobalt_unittests_loader cobalt_unittests_loader
+RBE Stats: down 2.64 MB, up 36.07 KB, 3 remote executions

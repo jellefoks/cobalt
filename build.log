@@ -1,0 +1,33 @@
+ninja: Entering directory `out/linux-x64x11-modular_devel'
+
+
+init credentials done 123.84977ms
+reapi instance: projects/cobalt-actions-prod/instances/default_instance
+
+
+loading fs state done 569.702582ms
+loading/recompacting deps log done 144.029851ms
+load siso config done 378.017171ms
+load build.ninja done 1.675769625s
+schedule pending:0+ready:1 (node:330870 edge:2)
+
+build start: Ready 1 Pending 1
+rebuild manifest finished	
+schedule pending:0+ready:1 (node:330870 edge:4)
+
+build start: Ready 5190 Pending 51158
+[0/16289] 11.05s S CXX obj/cobalt/cobalt_unittests/lifecycle_unittest.o
+[0/8207] 12.64s S CXX obj/cobalt/cobalt_unittests/splash_screen_unittest.o
+[0/5] 38.75s F CXX obj/cobalt/cobalt_unittests/lifecycle_unittest.o
+[1/5] 39.68s F CXX obj/cobalt/cobalt_unittests/splash_screen_unittest.o
+[2/5] 39.73s S SOLINK ./libcobalt_unittests.so
+[2/5] 56.78s F SOLINK ./libcobalt_unittests.so
+build finished	
+
+	
+local:3 remote:0 cache:0 fallback:0 retry:0 skip:56345
+reapi: ops: 15(err:2) / r:0(err:0) 0B / w:0(err:0) 0B
+fs: ops: 24002(err:7626) / r:6077(err:0) 3.50GiB / w:1(err:0) 694.60KiB
+
+
+57.24s Build Succeeded: 3 steps - 0.05/s

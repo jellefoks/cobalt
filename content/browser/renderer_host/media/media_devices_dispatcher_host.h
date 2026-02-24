@@ -18,6 +18,7 @@
 #include "content/browser/media/media_devices_util.h"
 #include "content/browser/renderer_host/media/media_devices_manager.h"
 #include "content/common/content_export.h"
+#include "content/public/common/buildflags.h"
 #include "content/public/browser/select_audio_output_request.h"
 #include "media/base/scoped_async_trace.h"
 #include "media/capture/mojom/video_capture_types.mojom.h"
@@ -80,11 +81,16 @@ class CONTENT_EXPORT MediaDevicesDispatcherHost
       override;
   void SetCaptureHandleConfig(
       blink::mojom::CaptureHandleConfigPtr config) override;
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
+#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS) && BUILDFLAG(ENABLE_SCREEN_CAPTURE)
   void CloseFocusWindowOfOpportunity(const std::string& label) override;
   void ProduceSubCaptureTargetId(
       media::mojom::SubCaptureTargetType type,
       ProduceSubCaptureTargetIdCallback callback) override;
+#else
+  void CloseFocusWindowOfOpportunity(const std::string& label) override {}
+  void ProduceSubCaptureTargetId(
+      media::mojom::SubCaptureTargetType type,
+      ProduceSubCaptureTargetIdCallback callback) override {}
 #endif
 
   void SetPreferredSinkId(const std::string& hashed_sink_id,

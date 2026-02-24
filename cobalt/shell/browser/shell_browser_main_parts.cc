@@ -122,8 +122,9 @@ scoped_refptr<base::RefCountedMemory> PlatformResourceProvider(int key) {
 
 }  // namespace
 
-ShellBrowserMainParts::ShellBrowserMainParts(const std::string& deep_link)
-    : deep_link_(deep_link) {}
+ShellBrowserMainParts::ShellBrowserMainParts(const std::string& deep_link,
+                                             bool is_visible)
+    : deep_link_(deep_link), is_visible_(is_visible) {}
 
 ShellBrowserMainParts::~ShellBrowserMainParts() = default;
 
@@ -153,7 +154,8 @@ void ShellBrowserMainParts::InitializeMessageLoopContext() {
   Shell::CreateNewWindow(browser_context_.get(), GetStartupURL(), nullptr,
                          gfx::Size(),
 #if BUILDFLAG(IS_ANDROID)
-                         false /* create_splash_screen_web_contents */
+                         false /* create_splash_screen_web_contents */,
+                         deep_link_
 #else
                          switches::ShouldCreateSplashScreen(), deep_link_
 #endif  // BUILDFLAG(IS_ANDROID)
@@ -187,7 +189,7 @@ void ShellBrowserMainParts::PostCreateThreads() {
 
 int ShellBrowserMainParts::PreMainMessageLoopRun() {
   InitializeBrowserContexts();
-  Shell::Initialize(CreateShellPlatformDelegate());
+  Shell::Initialize(CreateShellPlatformDelegate(), is_visible_);
   net::NetModule::SetResourceProvider(PlatformResourceProvider);
   ShellDevToolsManagerDelegate::StartHttpHandler(browser_context_.get());
   InitializeMessageLoopContext();
