@@ -17,50 +17,54 @@
 
 #include <memory>
 #include <string>
-#include <utility>
+#include <vector>
 
 #include "base/memory/raw_ptr.h"
+#include "base/run_loop.h"
 #include "cobalt/shell/browser/shell.h"
 #include "cobalt/shell/browser/shell_platform_delegate.h"
-#include "content/browser/accessibility/browser_accessibility_state_impl.h"
-#include "content/browser/notification_service_impl.h"
-#include "content/public/common/network_service_util.h"
 #include "content/public/test/browser_task_environment.h"
 #include "content/public/test/test_browser_context.h"
-#include "content/public/test/test_renderer_host.h"
-#include "content/test/test_content_browser_client.h"
-#include "content/test/test_content_client.h"
+#include "content/public/test/test_content_client_initializer.h"
 #include "mojo/core/embedder/embedder.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "ui/aura/test/aura_test_helper.h"
 #include "ui/events/devices/device_data_manager.h"
 #include "ui/gfx/geometry/size.h"
-
-#if defined(USE_AURA)
-#include "ui/aura/env.h"
-#endif
+#include "ui/gl/test/gl_surface_test_support.h"
 
 namespace content {
 
 class MockShellPlatformDelegate : public ShellPlatformDelegate {
  public:
-  void Initialize(const gfx::Size& default_window_size,
-                  bool is_visible) override {
-    set_is_visible(is_visible);
+  MockShellPlatformDelegate() {
+    application_state_ = GetInitialApplicationState();
+    ON_CALL(*this, RevealShell(::testing::_))
+        .WillByDefault(::testing::Return());
+    ON_CALL(*this, ConcealShell(::testing::_))
+        .WillByDefault(::testing::Return());
+    ON_CALL(*this, DoBlur()).WillByDefault(::testing::Return());
+    ON_CALL(*this, DoFocus()).WillByDefault(::testing::Return());
+    ON_CALL(*this, DoConceal()).WillByDefault(::testing::Return());
+    ON_CALL(*this, DoReveal()).WillByDefault(::testing::Return());
+    ON_CALL(*this, DoFreeze()).WillByDefault(::testing::Return());
+    ON_CALL(*this, DoUnfreeze()).WillByDefault(::testing::Return());
+    ON_CALL(*this, DoStop()).WillByDefault(::testing::Return());
   }
+  ~MockShellPlatformDelegate() override = default;
+
+  MOCK_METHOD(void, Initialize, (const gfx::Size&), (override));
   MOCK_METHOD(void,
               CreatePlatformWindow,
               (Shell * shell, const gfx::Size& initial_size),
               (override));
+  MOCK_METHOD(void, CleanUp, (Shell * shell), (override));
   MOCK_METHOD(void, SetContents, (Shell * shell), (override));
-  MOCK_METHOD(void, LoadSplashScreenContents, (Shell * shell), (override));
-  MOCK_METHOD(void, UpdateContents, (Shell * shell), (override));
   MOCK_METHOD(void,
               ResizeWebContent,
               (Shell * shell, const gfx::Size& content_size),
               (override));
-  MOCK_METHOD(bool, DestroyShell, (Shell * shell), (override));
-  MOCK_METHOD(void, CleanUp, (Shell * shell), (override));
   MOCK_METHOD(void,
               EnableUIControl,
               (Shell * shell, UIControl control, bool is_enabled),
@@ -69,79 +73,77 @@ class MockShellPlatformDelegate : public ShellPlatformDelegate {
               SetAddressBarURL,
               (Shell * shell, const GURL& url),
               (override));
+  MOCK_METHOD(void, SetIsLoading, (Shell * shell, bool loading), (override));
   MOCK_METHOD(void,
               SetTitle,
               (Shell * shell, const std::u16string& title),
               (override));
   MOCK_METHOD(void, DidCloseLastWindow, (), (override));
+  MOCK_METHOD(bool, DestroyShell, (Shell * shell), (override));
+  MOCK_METHOD(void, LoadSplashScreenContents, (Shell * shell), (override));
+  MOCK_METHOD(void, UpdateContents, (Shell * shell), (override));
+
   MOCK_METHOD(void, RevealShell, (Shell * shell), (override));
+  MOCK_METHOD(void, ConcealShell, (Shell * shell), (override));
+  MOCK_METHOD(void, DoBlur, (), (override));
+  MOCK_METHOD(void, DoFocus, (), (override));
+  MOCK_METHOD(void, DoConceal, (), (override));
+  MOCK_METHOD(void, DoReveal, (), (override));
+  MOCK_METHOD(void, DoFreeze, (), (override));
+  MOCK_METHOD(void, DoUnfreeze, (), (override));
+  MOCK_METHOD(void, DoStop, (), (override));
 };
 
-class TestBrowserAccessibilityState : public BrowserAccessibilityStateImpl {
- public:
-  TestBrowserAccessibilityState() = default;
+struct MojoInitializer {
+  MojoInitializer() {
+    static bool initialized = false;
+    if (!initialized) {
+      gl::GLSurfaceTestSupport::InitializeOneOff();
+      mojo::core::Init();
+      initialized = true;
+    }
+    if (!ui::DeviceDataManager::HasInstance()) {
+      ui::DeviceDataManager::CreateInstance();
+    }
+  }
 };
 
 class ShellTestBase : public ::testing::Test {
  public:
   ShellTestBase()
-      : task_environment_(content::BrowserTaskEnvironment::IO_MAINLOOP,
-                          base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
+      : task_environment_(base::test::TaskEnvironment::MainThreadType::UI) {}
+  ~ShellTestBase() override {
+    Shell::windows().clear();
+    Shell::Shutdown();
+  }
 
   void SetUp() override {
-    ForceInProcessNetworkService(true);
-    mojo::core::Init();
-    ui::DeviceDataManager::CreateInstance();
-#if defined(USE_AURA)
-    env_ = aura::Env::CreateInstance();
-#endif
-    browser_accessibility_state_ =
-        std::make_unique<TestBrowserAccessibilityState>();
-
-    notification_service_ = std::make_unique<NotificationServiceImpl>();
-
-    SetContentClient(&test_content_client_);
-    SetBrowserClientForTesting(&test_content_browser_client_);
-
-    rvh_enabler_ = std::make_unique<RenderViewHostTestEnabler>();
-
+    aura_test_helper_ = std::make_unique<aura::test::AuraTestHelper>();
+    aura_test_helper_->SetUp();
     browser_context_ = std::make_unique<TestBrowserContext>();
   }
 
   void TearDown() override {
-    platform_ = nullptr;
-    Shell::Shutdown();
     browser_context_.reset();
-    rvh_enabler_.reset();
-    SetBrowserClientForTesting(nullptr);
-    SetContentClient(nullptr);
-    notification_service_.reset();
-    browser_accessibility_state_.reset();
-#if defined(USE_AURA)
-    env_.reset();
-#endif
-    ui::DeviceDataManager::DeleteInstance();
+    aura_test_helper_->TearDown();
+    aura_test_helper_.reset();
   }
 
+ protected:
   void InitializeShell(bool is_visible) {
+    ShellPlatformDelegate::SetInitialPreload(!is_visible);
     auto platform =
         std::make_unique<::testing::NiceMock<MockShellPlatformDelegate>>();
     platform_ = platform.get();
     Shell::Initialize(std::move(platform), is_visible);
   }
 
- protected:
-  content::BrowserTaskEnvironment task_environment_;
-  TestContentClient test_content_client_;
-  TestContentBrowserClient test_content_browser_client_;
-#if defined(USE_AURA)
-  std::unique_ptr<aura::Env> env_;
-#endif
-  std::unique_ptr<NotificationServiceImpl> notification_service_;
-  std::unique_ptr<BrowserAccessibilityState> browser_accessibility_state_;
-  std::unique_ptr<RenderViewHostTestEnabler> rvh_enabler_;
-  raw_ptr<::testing::NiceMock<MockShellPlatformDelegate>> platform_ = nullptr;
+  MojoInitializer mojo_initializer_;
+  TestContentClientInitializer content_initializer_;
+  BrowserTaskEnvironment task_environment_;
+  std::unique_ptr<aura::test::AuraTestHelper> aura_test_helper_;
   std::unique_ptr<TestBrowserContext> browser_context_;
+  raw_ptr<::testing::NiceMock<MockShellPlatformDelegate>> platform_ = nullptr;
 };
 
 }  // namespace content

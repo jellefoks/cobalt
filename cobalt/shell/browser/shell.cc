@@ -222,9 +222,51 @@ ShellPlatformDelegate* Shell::GetPlatform() {
 }
 
 // static
+void Shell::OnBlur() {
+  if (g_platform) {
+    g_platform->OnBlur();
+  }
+}
+
+// static
+void Shell::OnFocus() {
+  if (g_platform) {
+    g_platform->OnFocus();
+  }
+}
+
+// static
+void Shell::OnConceal() {
+  if (g_platform) {
+    g_platform->OnConceal();
+  }
+}
+
+// static
 void Shell::OnReveal() {
   if (g_platform) {
     g_platform->OnReveal();
+  }
+}
+
+// static
+void Shell::OnFreeze() {
+  if (g_platform) {
+    g_platform->OnFreeze();
+  }
+}
+
+// static
+void Shell::OnUnfreeze() {
+  if (g_platform) {
+    g_platform->OnUnfreeze();
+  }
+}
+
+// static
+void Shell::OnStop() {
+  if (g_platform) {
+    g_platform->OnStop();
   }
 }
 
@@ -313,7 +355,8 @@ void Shell::Initialize(std::unique_ptr<ShellPlatformDelegate> platform,
                        bool is_visible) {
   DCHECK(!g_platform);
   g_platform = platform.release();
-  g_platform->Initialize(GetShellDefaultSize(), is_visible);
+  ShellPlatformDelegate::SetInitialPreload(!is_visible);
+  g_platform->Initialize(GetShellDefaultSize());
 }
 
 // static

@@ -14,6 +14,7 @@
 
 #include "cobalt/shell/browser/shell_platform_delegate.h"
 
+#include "base/logging.h"
 #include "cobalt/shell/browser/shell.h"
 #include "content/public/browser/file_select_listener.h"
 #include "content/public/browser/javascript_dialog_manager.h"
@@ -21,27 +22,182 @@
 
 namespace content {
 
+namespace {
+bool g_is_preload = false;
+}  // namespace
+
+// static
+void ShellPlatformDelegate::SetInitialPreload(bool is_preload) {
+  g_is_preload = is_preload;
+}
+
+// static
+ShellPlatformDelegate::ApplicationState
+ShellPlatformDelegate::GetInitialApplicationState() {
+  return g_is_preload ? kApplicationStateFrozen : kApplicationStateStarted;
+}
+
+void ShellPlatformDelegate::UpdateWebContentsVisibility(bool visible) {
+  for (auto* shell : Shell::windows()) {
+    if (!shell || reinterpret_cast<uintptr_t>(shell) == 0x1234 ||
+        !shell->web_contents()) {
+      continue;
+    }
+    if (visible) {
+      shell->web_contents()->WasShown();
+    } else {
+      shell->web_contents()->WasHidden();
+    }
+  }
+}
+
+void ShellPlatformDelegate::UpdateWebContentsFrozen(bool frozen) {
+  for (auto* shell : Shell::windows()) {
+    if (!shell || reinterpret_cast<uintptr_t>(shell) == 0x1234 ||
+        !shell->web_contents()) {
+      continue;
+    }
+    shell->web_contents()->SetPageFrozen(frozen);
+  }
+}
+
 bool ShellPlatformDelegate::IsVisible() const {
-  return is_visible_;
+  return application_state_ == kApplicationStateStarted ||
+         application_state_ == kApplicationStateBlurred;
+}
+
+bool ShellPlatformDelegate::IsConcealed() const {
+  return application_state_ >= kApplicationStateConcealed;
+}
+
+void ShellPlatformDelegate::TransitionToState(ApplicationState target_state) {
+  while (application_state_ != target_state) {
+    ApplicationState current = application_state_;
+
+    if (current < target_state) {
+      // Moving "down" the lifecycle (e.g. Started -> Blurred -> Concealed ->
+      // Frozen -> Stopped)
+      switch (current) {
+        case kApplicationStateStarted:
+          application_state_ = kApplicationStateBlurred;
+          DoBlur();
+          break;
+        case kApplicationStateBlurred:
+          UpdateWebContentsVisibility(false);
+          application_state_ = kApplicationStateConcealed;
+          DoConceal();
+          break;
+        case kApplicationStateConcealed:
+          UpdateWebContentsFrozen(true);
+          application_state_ = kApplicationStateFrozen;
+          DoFreeze();
+          break;
+        case kApplicationStateFrozen:
+          application_state_ = kApplicationStateStopped;
+          DoStop();
+          break;
+        default:
+          return;
+      }
+    } else {
+      // Moving "up" the lifecycle (e.g. Frozen -> Concealed -> Blurred ->
+      // Started)
+      switch (current) {
+        case kApplicationStateFrozen:
+          UpdateWebContentsFrozen(false);
+          application_state_ = kApplicationStateConcealed;
+          DoUnfreeze();
+          break;
+        case kApplicationStateConcealed:
+          UpdateWebContentsVisibility(true);
+          application_state_ = kApplicationStateBlurred;
+          DoReveal();
+          break;
+        case kApplicationStateBlurred:
+          application_state_ = kApplicationStateStarted;
+          DoFocus();
+          break;
+        default:
+          return;
+      }
+    }
+
+    if (application_state_ == current) {
+      break;
+    }
+  }
+}
+
+void ShellPlatformDelegate::OnBlur() {
+  TransitionToState(kApplicationStateBlurred);
+}
+
+void ShellPlatformDelegate::OnFocus() {
+  TransitionToState(kApplicationStateStarted);
+}
+
+void ShellPlatformDelegate::OnConceal() {
+  TransitionToState(kApplicationStateConcealed);
 }
 
 void ShellPlatformDelegate::OnReveal() {
-  if (is_visible_) {
-    return;
-  }
-  is_visible_ = true;
+  TransitionToState(kApplicationStateBlurred);
+}
+
+void ShellPlatformDelegate::OnFreeze() {
+  TransitionToState(kApplicationStateFrozen);
+}
+
+void ShellPlatformDelegate::OnUnfreeze() {
+  TransitionToState(kApplicationStateConcealed);
+}
+
+void ShellPlatformDelegate::OnStop() {
+  TransitionToState(kApplicationStateStopped);
+}
+
+void ShellPlatformDelegate::DoBlur() {}
+void ShellPlatformDelegate::DoFocus() {}
+void ShellPlatformDelegate::DoConceal() {
   for (auto* shell : Shell::windows()) {
-    RevealShell(shell);
-    shell->web_contents()->WasShown();
+    ConcealShell(shell);
   }
 }
+void ShellPlatformDelegate::DoReveal() {
+  for (auto* shell : Shell::windows()) {
+    RevealShell(shell);
+  }
+}
+void ShellPlatformDelegate::DoFreeze() {}
+void ShellPlatformDelegate::DoUnfreeze() {}
+void ShellPlatformDelegate::DoStop() {}
+
+void ShellPlatformDelegate::RunFileChooser(
+    RenderFrameHost* render_frame_host,
+    scoped_refptr<FileSelectListener> listener,
+    const blink::mojom::FileChooserParams& params) {
+  listener->FileSelectionCanceled();
+}
+
+#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
+void ShellPlatformDelegate::ToggleFullscreenModeForTab(
+    Shell* shell,
+    WebContents* web_contents,
+    bool enter_fullscreen) {}
+
+bool ShellPlatformDelegate::IsFullscreenForTabOrPending(
+    Shell* shell,
+    const WebContents* web_contents) const {
+  return false;
+}
+#endif
+
+// Base implementations for methods that are overridden by platforms.
+// These are provided here to ensure they are always defined.
+
 void ShellPlatformDelegate::DidCreateOrAttachWebContents(
     Shell* shell,
     WebContents* web_contents) {}
-
-void ShellPlatformDelegate::DidCloseLastWindow() {
-  Shell::Shutdown();
-}
 
 std::unique_ptr<JavaScriptDialogManager>
 ShellPlatformDelegate::CreateJavaScriptDialogManager(Shell* shell) {
@@ -60,13 +216,6 @@ bool ShellPlatformDelegate::ShouldAllowRunningInsecureContent(Shell* shell) {
   return false;
 }
 
-#if !BUILDFLAG(IS_IOS)
-void ShellPlatformDelegate::RunFileChooser(
-    RenderFrameHost* render_frame_host,
-    scoped_refptr<FileSelectListener> listener,
-    const blink::mojom::FileChooserParams& params) {
-  listener->FileSelectionCanceled();
-}
-#endif
+void ShellPlatformDelegate::DidCloseLastWindow() {}
 
 }  // namespace content

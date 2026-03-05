@@ -16,22 +16,17 @@
 
 #include <jni.h>
 
+#include "base/android/jni_android.h"
 #include "base/android/jni_string.h"
 #include "base/android/scoped_java_ref.h"
-#include "base/command_line.h"
 #include "base/containers/contains.h"
-#include "base/notreached.h"
-#include "base/strings/string_piece.h"
-#include "cobalt/shell/android/cobalt_shell_jni_headers/Shell_jni.h"
-#include "cobalt/shell/android/shell_manager.h"
 #include "cobalt/shell/browser/shell.h"
+#include "cobalt/shell/jni_headers/Shell_jni.h"
 #include "content/public/browser/render_widget_host_view.h"
 #include "content/public/browser/web_contents.h"
-#include "content/public/common/content_switches.h"
 
 using base::android::AttachCurrentThread;
 using base::android::ConvertUTF8ToJavaString;
-using base::android::JavaParamRef;
 using base::android::ScopedJavaLocalRef;
 
 namespace content {
@@ -42,18 +37,18 @@ struct ShellPlatformDelegate::ShellData {
 
 struct ShellPlatformDelegate::PlatformData {};
 
-ShellPlatformDelegate::ShellPlatformDelegate() = default;
-
-void ShellPlatformDelegate::Initialize(const gfx::Size& default_window_size,
-                                       bool is_visible) {
-  is_visible_ = is_visible;
-  // |platform_| is not used on this platform.
+ShellPlatformDelegate::ShellPlatformDelegate() {
+  application_state_ = GetInitialApplicationState();
 }
 
 ShellPlatformDelegate::~ShellPlatformDelegate() {
   if (!skip_for_testing_) {
     DestroyShellManager();
   }
+}
+
+void ShellPlatformDelegate::Initialize(const gfx::Size& default_window_size) {
+  // |platform_| is not used on this platform.
 }
 
 void ShellPlatformDelegate::CreatePlatformWindow(
@@ -151,12 +146,6 @@ bool ShellPlatformDelegate::DestroyShell(Shell* shell) {
   return false;  // Shell destroys itself.
 }
 
-void ShellPlatformDelegate::CreatePlatformWindowInternal(
-    Shell* shell,
-    const gfx::Size& initial_size) {}
-
-void ShellPlatformDelegate::RevealShell(Shell* shell) {}
-
 void ShellPlatformDelegate::ToggleFullscreenModeForTab(
     Shell* shell,
     WebContents* web_contents,
@@ -185,8 +174,7 @@ void ShellPlatformDelegate::SetOverlayMode(Shell* shell,
   DCHECK(base::Contains(shell_data_map_, shell));
   ShellData& shell_data = shell_data_map_[shell];
 
-  return Java_Shell_setOverlayMode(env, shell_data.java_object,
-                                   use_overlay_mode);
+  Java_Shell_setOverlayMode(env, shell_data.java_object, use_overlay_mode);
 }
 
 void ShellPlatformDelegate::LoadProgressChanged(Shell* shell, double progress) {

@@ -14,15 +14,14 @@
 
 #include "cobalt/app/app_lifecycle_delegate.h"
 
-#include "base/functional/bind.h"
 #include "cobalt/shell/browser/shell.h"
 #include "cobalt/shell/browser/shell_test_support.h"
-#include "content/test/test_web_contents.h"
+#include "starboard/event.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
-using testing::_;
-using testing::Return;
+using ::testing::_;
+using ::testing::Return;
 
 namespace cobalt {
 
@@ -34,7 +33,7 @@ class MockAppLifecycleRunner : public AppLifecycleRunner {
   MOCK_METHOD(void, InitializeSystem, (), (override));
   MOCK_METHOD(void,
               CreateMainDelegate,
-              (absl::optional<int64_t>, bool),
+              (absl::optional<int64_t> startup_timestamp, bool is_visible),
               (override));
   MOCK_METHOD(cobalt::CobaltMainDelegate*, GetMainDelegate, (), (override));
   MOCK_METHOD(int, Run, (content::ContentMainParams), (override));
@@ -51,42 +50,20 @@ class AppLifecycleDelegateTest : public content::ShellTestBase {
   }
 
  protected:
-  content::Shell* CreateTestShell(bool is_visible) {
-    InitializeShell(is_visible);
-    content::WebContents::CreateParams create_params(browser_context_.get());
-    create_params.desired_renderer_state =
-        content::WebContents::CreateParams::kNoRendererProcess;
-    create_params.initially_hidden = !is_visible;
-    std::unique_ptr<content::WebContents> web_contents(
-        content::TestWebContents::Create(create_params));
+  void SendStartEvent(bool is_visible) {
+    EXPECT_CALL(*runner_, InitializeSystem());
+    EXPECT_CALL(*runner_, CreateMainDelegate(_, is_visible));
+    EXPECT_CALL(*runner_, GetMainDelegate()).WillOnce(Return(nullptr));
+    EXPECT_CALL(*runner_, Run(_)).WillOnce(Return(0));
 
-    content::Shell* shell = new content::Shell(std::move(web_contents),
-                                               nullptr /* splash_contents */,
-                                               /*should_set_delegate=*/true,
-                                               /*topic*/ "",
-                                               /*skip_for_testing=*/true);
-    if (is_visible) {
-      EXPECT_CALL(*platform_, CreatePlatformWindow(shell, _));
-      content::Shell::GetPlatform()->CreatePlatformWindow(shell, gfx::Size());
-    }
-    EXPECT_CALL(*platform_, SetContents(shell));
-    content::Shell::FinishShellInitialization(shell);
-    return shell;
-  }
-
-  void SendStartEvent(SbEventType type) {
     SbEventStartData data = {nullptr, 0, nullptr};
-    SbEvent event = {type, 0, &data};
+    SbEvent event = {is_visible ? kSbEventTypeStart : kSbEventTypePreload, 0,
+                     &data};
     delegate_->HandleEvent(&event);
   }
 
-  void SendRevealEvent() {
-    SbEvent event = {kSbEventTypeReveal, 0, nullptr};
-    delegate_->HandleEvent(&event);
-  }
-
-  void SendStopEvent() {
-    SbEvent event = {kSbEventTypeStop, 0, nullptr};
+  void SendEvent(SbEventType type) {
+    SbEvent event = {type, 0, nullptr};
     delegate_->HandleEvent(&event);
   }
 
@@ -96,82 +73,130 @@ class AppLifecycleDelegateTest : public content::ShellTestBase {
 
 TEST_F(AppLifecycleDelegateTest, StartVisible) {
   InitializeShell(true);
-
-  EXPECT_CALL(*runner_, InitializeSystem());
-  EXPECT_CALL(*runner_, CreateMainDelegate(_, true));
-  EXPECT_CALL(*runner_, GetMainDelegate()).WillOnce(Return(nullptr));
-  EXPECT_CALL(*runner_, Run(_)).WillOnce(Return(0));
-
-  SendStartEvent(kSbEventTypeStart);
+  SendStartEvent(true);
 
   EXPECT_CALL(*runner_, IsRunning()).WillOnce(Return(true));
   EXPECT_TRUE(delegate_->IsRunning());
   EXPECT_TRUE(platform_->IsVisible());
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateStarted);
 }
 
 TEST_F(AppLifecycleDelegateTest, StartPreloaded) {
   InitializeShell(false);
-
-  EXPECT_CALL(*runner_, InitializeSystem());
-  EXPECT_CALL(*runner_, CreateMainDelegate(_, false));
-  EXPECT_CALL(*runner_, GetMainDelegate()).WillOnce(Return(nullptr));
-  EXPECT_CALL(*runner_, Run(_)).WillOnce(Return(0));
-
-  SendStartEvent(kSbEventTypePreload);
+  SendStartEvent(false);
 
   EXPECT_CALL(*runner_, IsRunning()).WillOnce(Return(true));
   EXPECT_TRUE(delegate_->IsRunning());
   EXPECT_FALSE(platform_->IsVisible());
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateFrozen);
 }
 
-TEST_F(AppLifecycleDelegateTest, IntegratedReveal) {
-  content::Shell* shell = CreateTestShell(false /* is_visible */);
-  EXPECT_FALSE(platform_->IsVisible());
+TEST_F(AppLifecycleDelegateTest, BlurFocus) {
+  InitializeShell(true);
+  SendStartEvent(true);
 
-  EXPECT_CALL(*platform_, RevealShell(shell));
-  SendRevealEvent();
+  // Transition: Started -> Blurred
+  SendEvent(kSbEventTypeBlur);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateBlurred);
 
-  EXPECT_TRUE(platform_->IsVisible());
-  EXPECT_EQ(shell->web_contents()->GetVisibility(),
-            content::Visibility::VISIBLE);
-
-  EXPECT_CALL(*platform_, DestroyShell(shell));
-  shell->Close();
+  // Transition: Blurred -> Started
+  SendEvent(kSbEventTypeFocus);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateStarted);
 }
 
-TEST_F(AppLifecycleDelegateTest, IntegratedRedundantReveal) {
-  content::Shell* shell = CreateTestShell(false /* is_visible */);
+TEST_F(AppLifecycleDelegateTest, ConcealReveal) {
+  InitializeShell(true);
+  SendStartEvent(true);
 
-  EXPECT_CALL(*platform_, RevealShell(shell)).Times(1);
-  SendRevealEvent();
+  // Transition: Started -> Blurred -> Concealed
+  SendEvent(kSbEventTypeConceal);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateConcealed);
 
-  EXPECT_CALL(*platform_, RevealShell(_)).Times(0);
-  SendRevealEvent();
-
-  EXPECT_CALL(*platform_, DestroyShell(shell));
-  shell->Close();
+  // Transition: Concealed -> Blurred
+  SendEvent(kSbEventTypeReveal);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateBlurred);
 }
 
-TEST_F(AppLifecycleDelegateTest, RevealBeforeStartDoesNotCrash) {
-  SendRevealEvent();
+TEST_F(AppLifecycleDelegateTest, FreezeUnfreeze) {
+  InitializeShell(false);
+  SendStartEvent(false);
+
+  // Transition: Frozen -> Concealed
+  SendEvent(kSbEventTypeUnfreeze);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateConcealed);
+
+  // Transition: Concealed -> Frozen
+  SendEvent(kSbEventTypeFreeze);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateFrozen);
 }
 
 TEST_F(AppLifecycleDelegateTest, Stop) {
-  // Expectations for OnStart (from SendStartEvent)
-  EXPECT_CALL(*runner_, InitializeSystem());
-  EXPECT_CALL(*runner_, CreateMainDelegate(_, true));
-  EXPECT_CALL(*runner_, GetMainDelegate()).WillOnce(Return(nullptr));
-  EXPECT_CALL(*runner_, Run(_)).WillOnce(Return(0));
-  SendStartEvent(kSbEventTypeStart);
+  InitializeShell(true);
+  SendStartEvent(true);
 
-  // Expectations for IsRunning check at start of OnStop (from SendStopEvent)
   EXPECT_CALL(*runner_, IsRunning()).WillOnce(Return(true));
   EXPECT_CALL(*runner_, ShutDown());
-  SendStopEvent();
+  SendEvent(kSbEventTypeStop);
 
-  // Expectation for final IsRunning check
   EXPECT_CALL(*runner_, IsRunning()).WillOnce(Return(false));
   EXPECT_FALSE(delegate_->IsRunning());
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateStopped);
+}
+
+TEST_F(AppLifecycleDelegateTest, FullLifecycle) {
+  InitializeShell(true);
+  SendStartEvent(true);
+
+  // Focus -> Blur
+  SendEvent(kSbEventTypeBlur);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateBlurred);
+
+  // Blur -> Focus
+  SendEvent(kSbEventTypeFocus);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateStarted);
+
+  // Focus -> Conceal
+  SendEvent(kSbEventTypeConceal);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateConcealed);
+
+  // Concealed -> Freeze
+  SendEvent(kSbEventTypeFreeze);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateFrozen);
+
+  // Frozen -> Unfreeze
+  SendEvent(kSbEventTypeUnfreeze);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateConcealed);
+
+  // Concealed -> Reveal
+  SendEvent(kSbEventTypeReveal);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateBlurred);
+
+  // Blurred -> Focus
+  SendEvent(kSbEventTypeFocus);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateStarted);
+
+  // Finally Stop
+  EXPECT_CALL(*runner_, IsRunning()).WillOnce(Return(true));
+  EXPECT_CALL(*runner_, ShutDown());
+  SendEvent(kSbEventTypeStop);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            content::ShellPlatformDelegate::kApplicationStateStopped);
 }
 
 }  // namespace cobalt

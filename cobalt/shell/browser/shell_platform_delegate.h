@@ -50,18 +50,38 @@ class ShellPlatformDelegate {
  public:
   enum UIControl { BACK_BUTTON, FORWARD_BUTTON, STOP_BUTTON };
 
+  enum ApplicationState {
+    kApplicationStateStarted = 1,
+    kApplicationStateBlurred = 2,
+    kApplicationStateFocused = 2,  // Alias for Blurred as visible.
+    kApplicationStateConcealed = 3,
+    kApplicationStateFrozen = 4,
+    kApplicationStateStopped = 5,
+  };
+
   ShellPlatformDelegate();
   virtual ~ShellPlatformDelegate();
 
-  // Helper for one time initialization of application.
-  virtual void Initialize(const gfx::Size& default_window_size,
-                          bool is_visible);
+  static void SetInitialPreload(bool is_preload);
 
-  // Returns true if the application is in a visible state.
+  // Helper for one time initialization of application.
+  virtual void Initialize(const gfx::Size& default_window_size);
+
+  // Returns true if the application is in a visible state (Started or Blurred).
   bool IsVisible() const;
 
+  ApplicationState application_state_for_testing() const {
+    return application_state_;
+  }
+
   // Lifecycle signals called from the application.
+  virtual void OnBlur();
+  virtual void OnFocus();
+  virtual void OnConceal();
   virtual void OnReveal();
+  virtual void OnFreeze();
+  virtual void OnUnfreeze();
+  virtual void OnStop();
 
   // Called after creating a Shell instance, with its initial size.
   virtual void CreatePlatformWindow(Shell* shell,
@@ -165,12 +185,32 @@ class ShellPlatformDelegate {
 #endif
 
  protected:
+  // Internal work methods for state transitions. Overridden by platforms to
+  // perform window management.
+  virtual void DoBlur();
+  virtual void DoFocus();
+  virtual void DoConceal();
+  virtual void DoReveal();
+  virtual void DoFreeze();
+  virtual void DoUnfreeze();
+  virtual void DoStop();
+
   virtual void RevealShell(Shell* shell);
+  virtual void ConcealShell(Shell* shell);
+
+  void UpdateWebContentsVisibility(bool visible);
+  void UpdateWebContentsFrozen(bool frozen);
+
+  // Returns true if the application is in a non-visible state (Concealed,
+  // Frozen, or Stopped).
+  bool IsConcealed() const;
 
   void CreatePlatformWindowInternal(Shell* shell,
                                     const gfx::Size& initial_size);
 
-  void set_is_visible(bool is_visible) { is_visible_ = is_visible; }
+  static ApplicationState GetInitialApplicationState();
+
+  ApplicationState application_state_ = kApplicationStateFrozen;
 
 #if defined(USE_AURA) && defined(SHELL_USE_TOOLKIT_VIEWS)
   // Allows the test subclasses to override the ViewsDelegate.
@@ -196,13 +236,14 @@ class ShellPlatformDelegate {
   // Holds an instance of ShellData for each Shell.
   base::flat_map<Shell*, ShellData> shell_data_map_;
 
-  bool is_visible_ = true;
-
   // Data held in ShellPlatformDelegate that is shared between all Shells. This
   // is created in Initialize(), and is defined for each platform
   // implementation.
   struct PlatformData;
   std::unique_ptr<PlatformData> platform_;
+
+ private:
+  void TransitionToState(ApplicationState state);
 
   bool skip_for_testing_ = false;
 };

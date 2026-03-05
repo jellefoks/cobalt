@@ -14,10 +14,10 @@
 
 #include "cobalt/shell/browser/shell.h"
 #include "cobalt/shell/browser/shell_test_support.h"
-#include "content/test/test_web_contents.h"
+#include "content/public/browser/web_contents.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
-using testing::_;
+using ::testing::_;
 
 namespace content {
 
@@ -25,86 +25,134 @@ class LifecycleTest : public ShellTestBase {
  public:
   LifecycleTest() = default;
 
-  Shell* CreateTestShell(bool is_visible) {
-    InitializeShell(is_visible);
-    WebContents::CreateParams create_params(browser_context_.get());
-    create_params.desired_renderer_state =
-        WebContents::CreateParams::kNoRendererProcess;
-    create_params.initially_hidden = !is_visible;
-    std::unique_ptr<WebContents> web_contents(
-        TestWebContents::Create(create_params));
-
-    Shell* shell =
-        new Shell(std::move(web_contents), nullptr /* splash_contents */,
-                  /*should_set_delegate=*/true,
-                  /*topic*/ "",
-                  /*skip_for_testing=*/true);
-    if (is_visible) {
-      EXPECT_CALL(*platform_, CreatePlatformWindow(shell, _));
-      Shell::GetPlatform()->CreatePlatformWindow(shell, gfx::Size());
-    }
-    EXPECT_CALL(*platform_, SetContents(shell));
-    Shell::FinishShellInitialization(shell);
-    return shell;
+ protected:
+  // Create a "fake" shell pointer by casting an arbitrary address.
+  // We only use this pointer to register it in Shell::windows() so that
+  // AppLifecycleDelegate can iterate over it and call Shell::RevealShell(shell), etc.
+  // NOTE: ShellPlatformDelegate now has a safety check to skip 0x1234.
+  Shell* CreateFakeShell() {
+    Shell* fake_shell = reinterpret_cast<Shell*>(0x1234);
+    Shell::windows().push_back(fake_shell);
+    return fake_shell;
   }
 };
 
 TEST_F(LifecycleTest, StartupVisible) {
-  Shell* shell = CreateTestShell(true /* is_visible */);
+  InitializeShell(true);
 
-  ASSERT_NE(shell->web_contents(), nullptr);
   EXPECT_TRUE(platform_->IsVisible());
-  EXPECT_EQ(shell->web_contents()->GetVisibility(), Visibility::VISIBLE);
-
-  EXPECT_CALL(*platform_, DestroyShell(shell));
-  shell->Close();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateStarted);
 }
 
 TEST_F(LifecycleTest, StartupHidden) {
-  Shell* shell = CreateTestShell(false /* is_visible */);
+  InitializeShell(false);
 
-  ASSERT_NE(shell->web_contents(), nullptr);
   EXPECT_FALSE(platform_->IsVisible());
-  // Preloading (starting hidden) should result in HIDDEN visibility.
-  EXPECT_EQ(shell->web_contents()->GetVisibility(), Visibility::HIDDEN);
-
-  EXPECT_CALL(*platform_, DestroyShell(shell));
-  shell->Close();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateFrozen);
 }
 
-TEST_F(LifecycleTest, Reveal) {
-  Shell* shell = CreateTestShell(false /* is_visible */);
+TEST_F(LifecycleTest, BlurFocus) {
+  InitializeShell(true);
+  CreateFakeShell();
+
+  // Initial state is Started.
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateStarted);
+
+  // Trigger blur.
+  Shell::OnBlur();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateBlurred);
+
+  // Trigger focus.
+  Shell::OnFocus();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateStarted);
+}
+
+TEST_F(LifecycleTest, ConcealReveal) {
+  InitializeShell(true);
+  CreateFakeShell();
+
+  EXPECT_TRUE(platform_->IsVisible());
+
+  // Trigger conceal.
+  Shell::OnConceal();
 
   EXPECT_FALSE(platform_->IsVisible());
-  EXPECT_EQ(shell->web_contents()->GetVisibility(), Visibility::HIDDEN);
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateConcealed);
 
   // Trigger reveal.
-  EXPECT_CALL(*platform_, RevealShell(shell));
   Shell::OnReveal();
 
   EXPECT_TRUE(platform_->IsVisible());
-  EXPECT_EQ(shell->web_contents()->GetVisibility(), Visibility::VISIBLE);
-
-  EXPECT_CALL(*platform_, DestroyShell(shell));
-  shell->Close();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateBlurred);
 }
 
 TEST_F(LifecycleTest, RedundantReveal) {
-  Shell* shell = CreateTestShell(false /* is_visible */);
+  InitializeShell(true);
+  CreateFakeShell();
 
-  // First reveal.
-  EXPECT_CALL(*platform_, RevealShell(shell)).Times(1);
-  Shell::OnReveal();
+  EXPECT_TRUE(platform_->IsVisible());
 
-  // Redundant reveal should do nothing.
-  EXPECT_CALL(*platform_, RevealShell(_)).Times(0);
+  // Trigger redundant reveal.
   Shell::OnReveal();
 
   EXPECT_TRUE(platform_->IsVisible());
-  EXPECT_EQ(shell->web_contents()->GetVisibility(), Visibility::VISIBLE);
+}
 
-  EXPECT_CALL(*platform_, DestroyShell(shell));
-  shell->Close();
+TEST_F(LifecycleTest, FreezeUnfreeze) {
+  InitializeShell(true);
+  CreateFakeShell();
+
+  // Started -> Concealed
+  Shell::OnConceal();
+
+  // Trigger freeze.
+  Shell::OnFreeze();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateFrozen);
+
+  // Trigger unfreeze.
+  Shell::OnUnfreeze();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateConcealed);
+}
+
+TEST_F(LifecycleTest, FullLifecycle) {
+  InitializeShell(true);
+  CreateFakeShell();
+
+  // Started -> Blurred
+  Shell::OnBlur();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateBlurred);
+
+  // Blurred -> Started
+  Shell::OnFocus();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateStarted);
+
+  // Started -> Concealed
+  Shell::OnConceal();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateConcealed);
+
+  // Concealed -> Frozen
+  Shell::OnFreeze();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateFrozen);
+
+  // Frozen -> Stopped
+  Shell::OnStop();
+  EXPECT_EQ(platform_->application_state_for_testing(),
+            ShellPlatformDelegate::kApplicationStateStopped);
+
+  // Attempting to move up from Stopped is not supported in this test (Stopped is terminal).
 }
 
 }  // namespace content

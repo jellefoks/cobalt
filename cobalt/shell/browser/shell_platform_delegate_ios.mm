@@ -23,6 +23,7 @@
 #include "cobalt/shell/app/resource.h"
 #include "cobalt/shell/browser/shell.h"
 #include "cobalt/shell/browser/shell_file_select_helper.h"
+#include "content/public/browser/web_contents.h"
 #include "services/tracing/public/cpp/perfetto/perfetto_config.h"
 #include "services/tracing/public/mojom/constants.mojom.h"
 #include "third_party/perfetto/include/perfetto/tracing/core/trace_config.h"
@@ -529,20 +530,15 @@ struct ShellPlatformDelegate::ShellData {
 
 struct ShellPlatformDelegate::PlatformData {};
 
-ShellPlatformDelegate::ShellPlatformDelegate() = default;
-ShellPlatformDelegate::~ShellPlatformDelegate() = default;
-
-void ShellPlatformDelegate::Initialize(const gfx::Size& default_window_size,
-                                       bool is_visible) {
-  is_visible_ = is_visible;
-  screen_ = std::make_unique<display::ScopedNativeScreen>();
+ShellPlatformDelegate::ShellPlatformDelegate() {
+  application_state_ = GetInitialApplicationState();
 }
 
-void ShellPlatformDelegate::RevealShell(Shell* shell) {}
+ShellPlatformDelegate::~ShellPlatformDelegate() = default;
 
-void ShellPlatformDelegate::CreatePlatformWindowInternal(
-    Shell* shell,
-    const gfx::Size& initial_size) {}
+void ShellPlatformDelegate::Initialize(const gfx::Size& default_window_size) {
+  screen_ = std::make_unique<display::ScopedNativeScreen>();
+}
 
 void ShellPlatformDelegate::CreatePlatformWindow(
     Shell* shell,
@@ -562,6 +558,10 @@ void ShellPlatformDelegate::CreatePlatformWindow(
   window.rootViewController = controller;
 
   shell_data.window = window;
+
+  if (IsVisible()) {
+    [window makeKeyAndVisible];
+  }
 }
 
 gfx::NativeWindow ShellPlatformDelegate::GetNativeWindow(Shell* shell) {
@@ -576,14 +576,7 @@ void ShellPlatformDelegate::CleanUp(Shell* shell) {
   shell_data_map_.erase(shell);
 }
 
-void ShellPlatformDelegate::SetContents(Shell* shell) {
-  DCHECK(base::Contains(shell_data_map_, shell));
-  //  ShellData& shell_data = shell_data_map_[shell];
-
-  //  UIView* web_contents_view = shell->web_contents()->GetNativeView();
-  //  [((ContentShellWindowDelegate *)shell_data.window.rootViewController)
-  //  setContents:web_contents_view];
-}
+void ShellPlatformDelegate::SetContents(Shell* shell) {}
 
 void ShellPlatformDelegate::LoadSplashScreenContents(Shell* shell) {}
 
@@ -686,6 +679,41 @@ bool ShellPlatformDelegate::IsFullscreenForTabOrPending(
   DCHECK(base::Contains(shell_data_map_, shell));
   auto iter = shell_data_map_.find(shell);
   return iter->second.fullscreen;
+}
+
+void ShellPlatformDelegate::DidCreateOrAttachWebContents(
+    Shell* shell,
+    WebContents* web_contents) {}
+
+std::unique_ptr<JavaScriptDialogManager>
+ShellPlatformDelegate::CreateJavaScriptDialogManager(Shell* shell) {
+  return nullptr;
+}
+
+bool ShellPlatformDelegate::HandleRequestToLockMouse(
+    Shell* shell,
+    WebContents* web_contents,
+    bool user_gesture,
+    bool last_unlocked_by_target) {
+  return false;
+}
+
+bool ShellPlatformDelegate::ShouldAllowRunningInsecureContent(Shell* shell) {
+  return false;
+}
+
+void ShellPlatformDelegate::DidCloseLastWindow() {}
+
+void ShellPlatformDelegate::RevealShell(Shell* shell) {
+  DCHECK(base::Contains(shell_data_map_, shell));
+  ShellData& shell_data = shell_data_map_[shell];
+  [shell_data.window makeKeyAndVisible];
+}
+
+void ShellPlatformDelegate::ConcealShell(Shell* shell) {
+  DCHECK(base::Contains(shell_data_map_, shell));
+  ShellData& shell_data = shell_data_map_[shell];
+  shell_data.window.hidden = YES;
 }
 
 }  // namespace content

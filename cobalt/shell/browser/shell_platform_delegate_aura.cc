@@ -14,110 +14,66 @@
 
 #include "cobalt/shell/browser/shell_platform_delegate.h"
 
-#include "base/containers/contains.h"
+#include "base/command_line.h"
 #include "cobalt/shell/browser/shell.h"
 #include "cobalt/shell/browser/shell_platform_data_aura.h"
-#include "content/public/browser/render_widget_host_view.h"
+#include "cobalt/shell/common/shell_switches.h"
 #include "content/public/browser/web_contents.h"
-#include "ui/aura/env.h"
 #include "ui/aura/window.h"
-#include "ui/aura/window_event_dispatcher.h"
 
 namespace content {
 
 struct ShellPlatformDelegate::ShellData {
-  gfx::NativeWindow window;
-  gfx::Size initial_size_;
+  // Aura-specific data for each Shell.
 };
 
 struct ShellPlatformDelegate::PlatformData {
-  std::unique_ptr<ShellPlatformDataAura> aura;
-  gfx::Size default_window_size;
+  std::unique_ptr<ShellPlatformDataAura> aura_data;
 };
 
-ShellPlatformDelegate::ShellPlatformDelegate() = default;
-ShellPlatformDelegate::~ShellPlatformDelegate() = default;
-
-ShellPlatformDataAura* ShellPlatformDelegate::GetShellPlatformDataAura() {
-  return platform_->aura.get();
+ShellPlatformDelegate::ShellPlatformDelegate() {
+  application_state_ = GetInitialApplicationState();
 }
 
-void ShellPlatformDelegate::Initialize(const gfx::Size& default_window_size,
-                                       bool is_visible) {
-  is_visible_ = is_visible;
+ShellPlatformDelegate::~ShellPlatformDelegate() = default;
+
+void ShellPlatformDelegate::Initialize(const gfx::Size& default_window_size) {
   platform_ = std::make_unique<PlatformData>();
-  platform_->default_window_size = default_window_size;
-  platform_->aura = nullptr;
+  platform_->aura_data =
+      std::make_unique<ShellPlatformDataAura>(default_window_size);
 }
 
 void ShellPlatformDelegate::CreatePlatformWindow(
     Shell* shell,
     const gfx::Size& initial_size) {
-  DCHECK(!base::Contains(shell_data_map_, shell));
-  ShellData& shell_data = shell_data_map_[shell];
-
-  shell_data.initial_size_ = initial_size;
-
-  if (IsVisible()) {
-    CreatePlatformWindowInternal(shell, initial_size);
-  } else {
-    shell_data.window = nullptr;
+  shell_data_map_[shell] = ShellData();
+  if (IsVisible() && platform_->aura_data) {
+    platform_->aura_data->Show();
   }
-}
-
-void ShellPlatformDelegate::CreatePlatformWindowInternal(
-    Shell* shell,
-    const gfx::Size& initial_size) {
-  if (!platform_->aura) {
-    platform_->aura =
-        std::make_unique<ShellPlatformDataAura>(platform_->default_window_size);
-  }
-  platform_->aura->ResizeWindow(initial_size);
-
-  ShellData& shell_data = shell_data_map_.at(shell);
-  shell_data.window = platform_->aura->host()->window();
-}
-
-gfx::NativeWindow ShellPlatformDelegate::GetNativeWindow(Shell* shell) {
-  DCHECK(base::Contains(shell_data_map_, shell));
-  ShellData& shell_data = shell_data_map_[shell];
-  return shell_data.window;
 }
 
 void ShellPlatformDelegate::CleanUp(Shell* shell) {
-  DCHECK(base::Contains(shell_data_map_, shell));
   shell_data_map_.erase(shell);
 }
 
+void ShellPlatformDelegate::DidCloseLastWindow() {}
+
 void ShellPlatformDelegate::SetContents(Shell* shell) {
-  aura::Window* content = shell->web_contents()->GetNativeView();
-  if (!platform_->aura) {
-    return;
+  if (platform_->aura_data) {
+    platform_->aura_data->ResizeWindow(
+        shell->web_contents()->GetContainerBounds().size());
   }
-  aura::Window* parent = platform_->aura->host()->window();
-  if (parent && !parent->Contains(content)) {
-    parent->AddChild(content);
-  }
-
-  content->Show();
 }
 
-void ShellPlatformDelegate::RevealShell(Shell* shell) {
-  ShellData& shell_data = shell_data_map_.at(shell);
-  if (!shell_data.window) {
-    CreatePlatformWindowInternal(shell, shell_data.initial_size_);
-    SetContents(shell);
-  }
-
-  platform_->aura->host()->Show();
-}
 void ShellPlatformDelegate::LoadSplashScreenContents(Shell* shell) {}
 
 void ShellPlatformDelegate::UpdateContents(Shell* shell) {}
 
 void ShellPlatformDelegate::ResizeWebContent(Shell* shell,
                                              const gfx::Size& content_size) {
-  shell->web_contents()->GetRenderWidgetHostView()->SetSize(content_size);
+  if (platform_->aura_data) {
+    platform_->aura_data->ResizeWindow(content_size);
+  }
 }
 
 void ShellPlatformDelegate::EnableUIControl(Shell* shell,
@@ -129,12 +85,66 @@ void ShellPlatformDelegate::SetAddressBarURL(Shell* shell, const GURL& url) {}
 void ShellPlatformDelegate::SetIsLoading(Shell* shell, bool loading) {}
 
 void ShellPlatformDelegate::SetTitle(Shell* shell,
-                                     const std::u16string& title) {}
+                                     const std::u16string& title) {
+  if (platform_->aura_data) {
+    platform_->aura_data->SetTitle(title);
+  }
+}
 
 void ShellPlatformDelegate::MainFrameCreated(Shell* shell) {}
 
 bool ShellPlatformDelegate::DestroyShell(Shell* shell) {
-  return false;  // Shell destroys itself.
+  return false;
+}
+
+void ShellPlatformDelegate::DidCreateOrAttachWebContents(
+    Shell* shell,
+    WebContents* web_contents) {}
+
+std::unique_ptr<JavaScriptDialogManager>
+ShellPlatformDelegate::CreateJavaScriptDialogManager(Shell* shell) {
+  return nullptr;
+}
+
+bool ShellPlatformDelegate::HandleRequestToLockMouse(
+    WebContents* web_contents,
+    bool user_gesture,
+    bool last_unlocked_by_target) {
+  return false;
+}
+
+bool ShellPlatformDelegate::ShouldAllowRunningInsecureContent(Shell* shell) {
+  return false;
+}
+
+void ShellPlatformDelegate::RunFileChooser(
+    RenderFrameHost* render_frame_host,
+    scoped_refptr<FileSelectListener> listener,
+    const blink::mojom::FileChooserParams& params) {}
+
+#if !BUILDFLAG(IS_ANDROID)
+gfx::NativeWindow ShellPlatformDelegate::GetNativeWindow(Shell* shell) {
+  if (platform_->aura_data) {
+    return platform_->aura_data->host()->window();
+  }
+  return nullptr;
+}
+#endif
+
+ShellPlatformDataAura* ShellPlatformDelegate::GetShellPlatformDataAura() {
+  return platform_->aura_data.get();
+}
+
+void ShellPlatformDelegate::RevealShell(Shell* shell) {
+  if (platform_ && platform_->aura_data) {
+    platform_->aura_data->Show();
+  }
+}
+
+void ShellPlatformDelegate::ConcealShell(Shell* shell) {
+  if (platform_ && platform_->aura_data) {
+    platform_->aura_data->Hide();
+  }
 }
 
 }  // namespace content
