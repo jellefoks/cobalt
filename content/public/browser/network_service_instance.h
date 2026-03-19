@@ -42,8 +42,9 @@ namespace content {
 // This method can only be called on the UI thread.
 CONTENT_EXPORT network::mojom::NetworkService* GetNetworkService();
 
-// Only on ChromeOS and Cobalt since it's only used there.
-#if BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_COBALT)
+// Only on ChromeOS since it's only used there.
+// Cobalt: Used on Starboard as well.
+#if BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_STARBOARD)
 // Returns the global NetworkChangeNotifier instance.
 CONTENT_EXPORT net::NetworkChangeNotifier* GetNetworkChangeNotifier();
 #endif
