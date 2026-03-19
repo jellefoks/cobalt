@@ -18,6 +18,7 @@
 #include "content/public/browser/javascript_dialog_manager.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_widget_host.h"
+#include "content/public/browser/render_widget_host_view.h"
 #include "content/public/browser/web_contents.h"
 
 namespace content {
@@ -29,14 +30,21 @@ bool ShellPlatformDelegate::IsVisible() const {
 void ShellPlatformDelegate::OnBlur() {
   CHECK(IsVisible());
   for (auto* shell : Shell::windows()) {
-    shell->web_contents()->GetPrimaryMainFrame()->GetRenderWidgetHost()->Blur();
+    if (shell->web_contents()) {
+      shell->web_contents()
+          ->GetPrimaryMainFrame()
+          ->GetRenderWidgetHost()
+          ->Blur();
+    }
   }
 }
 
 void ShellPlatformDelegate::OnFocus() {
   CHECK(IsVisible());
   for (auto* shell : Shell::windows()) {
-    shell->web_contents()->Focus();
+    if (shell->web_contents()) {
+      shell->web_contents()->Focus();
+    }
   }
 }
 
