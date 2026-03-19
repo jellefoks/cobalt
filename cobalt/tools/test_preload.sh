@@ -109,16 +109,12 @@ kill -SIGPWR $COBALT_PID
 
 # Wait for process to exit
 log "Waiting for Cobalt to exit..."
-set +e
 wait $COBALT_PID
 EXIT_CODE=$?
-set -e
 
 log "Cobalt exited with code: $EXIT_CODE"
 
-# For now, ignore non-zero exit codes if they are due to SIGABRT (134) or SIGSEGV (139)
-# during shutdown, but log them.
-if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 134 ] && [ $EXIT_CODE -ne 139 ]; then
+if [ $EXIT_CODE -ne 0 ]; then
   echo -e "${RED}FAILURE: Cobalt exited with non-zero code $EXIT_CODE${NC}"
   exit 1
 fi
