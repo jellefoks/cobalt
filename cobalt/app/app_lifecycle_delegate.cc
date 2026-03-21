@@ -14,12 +14,6 @@
 
 #include "cobalt/app/app_lifecycle_delegate.h"
 
-#include "build/build_config.h"
-
-#if !BUILDFLAG(IS_STARBOARD)
-#error This file is only intended for Starboard platforms.
-#endif
-
 #include <array>
 #include <cstddef>
 #include <sstream>
@@ -32,6 +26,7 @@
 #include "base/logging.h"
 #include "base/memory/memory_pressure_listener.h"
 #include "base/no_destructor.h"
+#include "build/build_config.h"
 #include "cobalt/browser/cobalt_content_browser_client.h"
 #include "cobalt/browser/h5vcc_accessibility/h5vcc_accessibility_manager.h"
 #include "cobalt/browser/h5vcc_runtime/deep_link_manager.h"
@@ -151,13 +146,13 @@ void AppLifecycleDelegate::HandleEvent(const SbEvent* event) {
       break;
     case kSbEventTypeBlur:
       content::Shell::OnBlur();
-#if BUILDFLAG(IS_STARBOARD)
       {
         auto* client = cobalt::CobaltContentBrowserClient::Get();
         if (client) {
           client->DispatchBlur();
         }
       }
+#if BUILDFLAG(IS_STARBOARD)
       if (platform_event_source_) {
         platform_event_source_->HandleFocusEvent(event);
       }
@@ -165,13 +160,13 @@ void AppLifecycleDelegate::HandleEvent(const SbEvent* event) {
       break;
     case kSbEventTypeFocus:
       content::Shell::OnFocus();
-#if BUILDFLAG(IS_STARBOARD)
       {
         auto* client = cobalt::CobaltContentBrowserClient::Get();
         if (client) {
           client->DispatchFocus();
         }
       }
+#if BUILDFLAG(IS_STARBOARD)
       if (platform_event_source_) {
         platform_event_source_->HandleFocusEvent(event);
       }

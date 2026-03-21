@@ -100,19 +100,6 @@ class TestBrowserAccessibilityState : public BrowserAccessibilityStateImpl {
   TestBrowserAccessibilityState() = default;
 };
 
-class MojoInitializer {
- public:
-  MojoInitializer() {
-    if (!aura::Env::HasInstance()) {
-      aura_env_ = aura::Env::CreateInstance();
-    }
-    mojo::core::Init();
-  }
-
- private:
-  std::unique_ptr<aura::Env> aura_env_;
-};
-
 class ShellTestBase : public ::testing::Test {
  public:
   ShellTestBase()
@@ -122,7 +109,14 @@ class ShellTestBase : public ::testing::Test {
 
   void SetUp() override {
     ForceInProcessNetworkService();
+    mojo::core::Init();
     ui::DeviceDataManager::CreateInstance();
+
+#if defined(USE_AURA)
+    if (!aura::Env::HasInstance()) {
+      env_ = aura::Env::CreateInstance();
+    }
+#endif
 
     base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
     if (!command_line->HasSwitch(switches::kSingleProcess)) {
@@ -153,6 +147,9 @@ class ShellTestBase : public ::testing::Test {
     SetBrowserClientForTesting(nullptr);
     SetContentClient(nullptr);
     browser_accessibility_state_.reset();
+#if defined(USE_AURA)
+    env_.reset();
+#endif
     ui::DeviceDataManager::DeleteInstance();
   }
 
@@ -197,7 +194,10 @@ class ShellTestBase : public ::testing::Test {
   }
 
  protected:
-  MojoInitializer mojo_initializer_;
+#if defined(USE_AURA)
+  // MUST be declared before task_environment_ to ensure it outlives it.
+  std::unique_ptr<aura::Env> env_;
+#endif
   content::BrowserTaskEnvironment task_environment_;
   TestContentClient test_content_client_;
   TestContentBrowserClient test_content_browser_client_;
