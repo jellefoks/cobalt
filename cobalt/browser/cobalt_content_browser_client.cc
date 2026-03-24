@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "base/metrics/histogram_functions.h"
+#include "base/timer/elapsed_timer.h"
 #include "cobalt/browser/cobalt_content_browser_client.h"
 
 #include <string>
@@ -438,11 +440,23 @@ void CobaltContentBrowserClient::FlushCookiesAndLocalStorage(
   CHECK(rfh);
   auto* storage_partition = rfh->GetStoragePartition();
   CHECK(storage_partition);
+
+  auto start_time = std::make_unique<base::ElapsedTimer>();
+
   // Flushes localStorage.
   storage_partition->Flush();
   auto* cookie_manager = storage_partition->GetCookieManagerForBrowserProcess();
   CHECK(cookie_manager);
-  cookie_manager->FlushCookieStore(std::move(callback));
+  cookie_manager->FlushCookieStore(base::BindOnce(
+      [](std::unique_ptr<base::ElapsedTimer> timer,
+         base::OnceClosure original_callback) {
+        base::UmaHistogramTimes("Cobalt.Storage.OnPause.FlushDuration",
+                                timer->Elapsed());
+        if (original_callback) {
+          std::move(original_callback).Run();
+        }
+      },
+      std::move(start_time), std::move(callback)));
 }
 
 void CobaltContentBrowserClient::SetUpCobaltFeaturesAndParams(
