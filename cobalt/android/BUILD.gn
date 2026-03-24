@@ -190,6 +190,7 @@ shared_library("libchrobalt") {
   # TODO(b/375655377): remove testonly
   testonly = true
   deps = [
+    "//cobalt:common",
     "//cobalt/browser",
     "//cobalt/gpu",
     "//cobalt/renderer",
@@ -215,11 +216,7 @@ shared_library("libchrobalt") {
       "//media/midi",
     ]
   }
-  sources = [
-    "//cobalt/app/cobalt_main_delegate.cc",
-    "//cobalt/app/cobalt_main_delegate.h",
-    "cobalt_library_loader.cc",
-  ]
+  sources = [ "cobalt_library_loader.cc" ]
   configs -= [ "//build/config/android:hide_all_but_jni_onload" ]
   configs += [ "//build/config/android:hide_all_but_jni" ]
   if (is_official_build) {
