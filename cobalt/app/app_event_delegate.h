@@ -48,8 +48,9 @@ class AppEventDelegate {
   // this monotonic ordering to ensure correct state machine transitions.
   //
   // The enum is ordered such that:
-  //   application_state_ < target_state_ => Moving towards Stopped
-  //   application_state_ > target_state_ => Moving towards Started
+  //   application_state_ < target_state_ => Deactivating (moving towards Stopped)
+  //   application_state_ > target_state_ => Activating (moving towards Started)
+  //   (Note: kInitial -> kStarted is an exception handled by the logic)
   enum class ApplicationState {
     kInitial = 0,
     kStarted = 1,
