@@ -34,6 +34,7 @@
 namespace content {
 class WebContents;
 class RenderFrameHost;
+class NavigationHandle;
 }  // namespace content
 
 namespace cobalt {
@@ -132,6 +133,12 @@ class CobaltLifecycleManager : public cobalt::mojom::CobaltLifecycleObserver {
   // lifetime). Therefore, the WebContents* is guaranteed to be valid during the
   // call.
 
+  // Proactively instantiates the internal WebContentsTracker for the specified
+  // WebContents. This is useful during early startup to ensure the tracker
+  // is registered in time to catch the RenderFrameCreated() event for the main
+  // frame.
+  void InitializeTracker(content::WebContents* web_contents);
+
   // Called when a new document is created and H5vccRuntimeImpl is bound to it.
   // Registers the frame with the manager to track its visibility.
   void RegisterFrame(content::WebContents* web_contents,
@@ -197,6 +204,8 @@ class CobaltLifecycleManager : public cobalt::mojom::CobaltLifecycleObserver {
     void RenderFrameDeleted(
         content::RenderFrameHost* render_frame_host) override;
     void WebContentsDestroyed() override;
+    void DidFinishNavigation(
+        content::NavigationHandle* navigation_handle) override;
 
     // Methods to update the tracked state of a specific frame.
     void SetResumed(content::RenderFrameHost* frame);
@@ -261,6 +270,12 @@ class CobaltLifecycleManager : public cobalt::mojom::CobaltLifecycleObserver {
 
   mojo::ReceiverSet<cobalt::mojom::CobaltLifecycleObserver, FrameContext>
       receivers_;
+
+  // Tracks the number of active Mojo lifecycle observer receivers (connections)
+  // associated with each RenderFrameHost (keyed by its global ID). This is used
+  // to dynamically monitor frame connection lifetimes and determine when a
+  // frame is actively participating in the lifecycle transition handshake.
+  std::map<content::GlobalRenderFrameHostId, int> active_receiver_counts_;
 
   base::WeakPtrFactory<CobaltLifecycleManager> weak_factory_{this};
 

@@ -29,6 +29,7 @@
 #include "base/no_destructor.h"
 #include "base/run_loop.h"
 #include "base/synchronization/lock.h"
+#include "base/task/current_thread.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/threading/platform_thread.h"
 #include "base/threading/thread_restrictions.h"
@@ -404,6 +405,8 @@ class AppEventRunnerImpl : public AppEventRunner,
 
     {
       base::AutoUnlock unlock(lock_);
+      base::CurrentThread::ScopedAllowApplicationTasksInNativeNestedLoop
+          allow_nestable;
       run_loop.Run();
     }
     pending_ack_ = PendingAck::kNone;

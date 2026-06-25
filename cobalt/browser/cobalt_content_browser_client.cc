@@ -37,6 +37,7 @@
 #include "cobalt/browser/constants/cobalt_experiment_names.h"
 #include "cobalt/browser/features.h"
 #include "cobalt/browser/global_features.h"
+#include "cobalt/browser/lifecycle/cobalt_lifecycle_manager.h"
 #include "cobalt/browser/metrics/cobalt_metrics_services_manager_client.h"
 #include "cobalt/browser/user_agent/user_agent_platform_info.h"
 #include "cobalt/common/features/starboard_features_initialization.h"
@@ -366,6 +367,11 @@ void CobaltContentBrowserClient::OnWebContentsCreated(
   }
   VLOG(1) << "NativeSplash: Observing main frame WebContents.";
   web_contents_observer_.reset(new CobaltWebContentsObserver(web_contents));
+
+  // Instantiates the CobaltLifecycleManager tracker early so that it
+  // does not miss the RenderFrameCreated() event for the main frame.
+  cobalt::CobaltLifecycleManager::GetInstance()->InitializeTracker(
+      web_contents);
 #if BUILDFLAG(USE_EVERGREEN)
   // Create the updater module singleton if not already created.
   auto* storage_partition =
