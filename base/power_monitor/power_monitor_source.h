@@ -10,6 +10,10 @@
 #include "base/synchronization/lock.h"
 #include "build/build_config.h"
 
+namespace cobalt {
+class AppEventRunnerImpl;
+}
+
 namespace base {
 
 // Communicates power state changes to the power monitor.
@@ -54,6 +58,7 @@ class BASE_EXPORT PowerMonitorSource {
 
  protected:
   friend class PowerMonitorTest;
+  friend class cobalt::AppEventRunnerImpl;
 
   // Friend function that is allowed to access the protected ProcessPowerEvent.
   friend void ProcessPowerEventHelper(PowerEvent);

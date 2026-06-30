@@ -42,8 +42,6 @@ void SbEventHandle(const SbEvent* event) {
     // Run pending tasks until idle before teardown.
     base::RunLoop().RunUntilIdle();
 
-    // Start synchronous teardown.
-    s_lifecycle_delegate->DoTeardown();
     delete s_lifecycle_delegate;
     s_lifecycle_delegate = nullptr;
   } else {

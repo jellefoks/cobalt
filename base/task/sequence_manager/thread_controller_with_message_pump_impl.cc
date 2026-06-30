@@ -417,10 +417,15 @@ std::optional<WakeUp> ThreadControllerWithMessagePumpImpl::DoWorkImpl(
     OnBeginWorkItemImpl(lazy_now_select_task);
     int run_depth = static_cast<int>(run_level_tracker_.num_run_levels());
 
+#if BUILDFLAG(IS_COBALT) || BUILDFLAG(IS_STARBOARD)
+    const SequencedTaskSource::SelectTaskOption select_task_option =
+        SequencedTaskSource::SelectTaskOption::kDefault;
+#else
     const SequencedTaskSource::SelectTaskOption select_task_option =
         power_monitor_.IsProcessInPowerSuspendState()
             ? SequencedTaskSource::SelectTaskOption::kSkipDelayedTask
             : SequencedTaskSource::SelectTaskOption::kDefault;
+#endif
     std::optional<SequencedTaskSource::SelectedTask> selected_task =
         main_thread_only().task_source->SelectNextTask(lazy_now_select_task,
                                                        select_task_option);
@@ -498,10 +503,15 @@ std::optional<WakeUp> ThreadControllerWithMessagePumpImpl::DoWorkImpl(
 
   // Re-check the state of the power after running tasks. An executed task may
   // have been a power change notification.
+#if BUILDFLAG(IS_COBALT) || BUILDFLAG(IS_STARBOARD)
+  const SequencedTaskSource::SelectTaskOption select_task_option =
+      SequencedTaskSource::SelectTaskOption::kDefault;
+#else
   const SequencedTaskSource::SelectTaskOption select_task_option =
       power_monitor_.IsProcessInPowerSuspendState()
           ? SequencedTaskSource::SelectTaskOption::kSkipDelayedTask
           : SequencedTaskSource::SelectTaskOption::kDefault;
+#endif
   return main_thread_only().task_source->GetPendingWakeUp(continuation_lazy_now,
                                                           select_task_option);
 }

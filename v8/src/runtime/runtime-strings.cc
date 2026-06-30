@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "build/build_config.h"
 #include "src/execution/arguments-inl.h"
 #include "src/heap/heap-inl.h"
 #include "src/numbers/conversions.h"
@@ -18,14 +19,18 @@ namespace internal {
 
 RUNTIME_FUNCTION(Runtime_GetSubstitution) {
   HandleScope scope(isolate);
-  DCHECK_EQ(5, args.length());
+  int message_length = args.length();
+  if (message_length < 5) {
+    return ReadOnlyRoots(isolate).exception();
+  }
+
   DirectHandle<String> matched = args.at<String>(0);
   DirectHandle<String> subject = args.at<String>(1);
   int position = args.smi_value_at(2);
   DirectHandle<String> replacement = args.at<String>(3);
   int start_index = args.smi_value_at(4);
 
-  // A simple match without captures.
+  // A simple match object constructed around a flat subject string.
   class SimpleMatch : public String::Match {
    public:
     SimpleMatch(DirectHandle<String> match, DirectHandle<String> prefix,
@@ -44,7 +49,22 @@ RUNTIME_FUNCTION(Runtime_GetSubstitution) {
     }
     MaybeDirectHandle<String> GetNamedCapture(DirectHandle<String> name,
                                               CaptureState* state) override {
+#if BUILDFLAG(IS_COBALT) || BUILDFLAG(IS_STARBOARD)
+      // When web scripts execute String.prototype.replace() with named capture
+      // replacement syntax ($<name>) against non-RegExp match targets or simple string
+      // search patterns (such as visibility or deep link JS handlers in Cobalt),
+      // V8 constructs a SimpleMatch and invokes GetNamedCapture.
+      //
+      // Upstream V8 marks this method as UNREACHABLE(), assuming named capture syntax
+      // is only parsed when a full RegExp match object is generated. However, in Cobalt,
+      // simple string replacements containing '$<' trigger this path. Returning
+      // CaptureState::UNMATCHED prevents SIGTRAP crashes while cleanly substituting
+      // empty strings for unmatched capture names.
+      *state = CaptureState::UNMATCHED;
+      return match_;
+#else
       UNREACHABLE();
+#endif
     }
 
    private:

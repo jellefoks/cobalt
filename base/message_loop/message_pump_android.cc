@@ -521,7 +521,37 @@ void MessagePumpAndroid::DoNonDelayedLooperWork(bool do_idle_work) {
 }
 
 void MessagePumpAndroid::Run(Delegate* delegate) {
+#if BUILDFLAG(IS_COBALT)
+  // In standard Chromium on Android, the main UI thread message loop is driven
+  // entirely by Java's Looper, so calling RunLoop::Run() hits NOTREACHED().
+  // However, in Cobalt builds on Android, synchronous lifecycle events
+  // (e.g. HandleEvent for Conceal or Freeze) require executing nested run loops
+  // on the UI thread to ensure internal C++ tasks (such as concealing web
+  // contents, flushing storage, and releasing media resources) complete fully
+  // before returning control to the operating system.
+  //
+  // Here, we pump only Chromium's internal C++ task queue via delegate_->DoWork()
+  // without re-entering Android's native kernel looper (ALooper_pollOnce),
+  // which avoids libutils.so re-entrancy crashes while guaranteeing clean,
+  // synchronous completion of Chromium tasks.
+  SetDelegate(delegate);
+  while (!ShouldQuit()) {
+    Delegate::NextWorkInfo next_work_info = delegate_->DoWork();
+    if (ShouldQuit()) {
+      break;
+    }
+    if (next_work_info.is_immediate()) {
+      continue;
+    }
+    delegate_->DoIdleWork();
+    if (ShouldQuit()) {
+      break;
+    }
+    base::PlatformThread::Sleep(base::Milliseconds(5));
+  }
+#else
   NOTREACHED() << "Unexpected call to Run()";
+#endif
 }
 
 void MessagePumpAndroid::Attach(Delegate* delegate) {

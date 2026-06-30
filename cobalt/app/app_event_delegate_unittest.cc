@@ -218,7 +218,6 @@ class AppEventDelegateTest : public content::ShellTestBase {
       delegate_->SetQuitClosure(run_loop.QuitClosure());
       delegate_->HandleEvent(&event);
       run_loop.Run();
-      delegate_->DoTeardown();
     } else {
       delegate_->HandleEvent(&event);
       base::RunLoop().RunUntilIdle();

@@ -246,21 +246,29 @@ void AppEventDelegate::HandleEventLocked(const SbEvent* event) {
 }
 
 void AppEventDelegate::ExecuteNextStep() {
-  if (application_state_ == target_state_) {
-    is_transitioning_ = false;
-    if (quit_closure_) {
-      std::move(quit_closure_).Run();
+  while (application_state_ != target_state_) {
+    bool is_activating = target_state_ < application_state_;
+    ApplicationState next_state =
+        GetNextState(application_state_, is_activating);
+
+    // Note: ExecuteEventRunner does not change state nor rely on state of this
+    // object, and therefore the lock does not need to be held here.
+    // Unlocking also allows re-entrancy from the UI thread (e.g., if a JNI
+    // call arrives while we are pumping tasks in the runner's RunLoop).
+    {
+      base::AutoUnlock unlock(lock_);
+      ExecuteEventRunner(next_state, is_activating);
     }
-    return;
+
+    SetApplicationState(next_state);
+    if (next_state == ApplicationState::kStopped) {
+      if (quit_closure_) {
+        std::move(quit_closure_).Run();
+      }
+      break;
+    }
   }
-
-  bool is_activating = target_state_ < application_state_;
-  ApplicationState next_state = GetNextState(application_state_, is_activating);
-
-  content::GetUIThreadTaskRunner({})->PostTask(
-      FROM_HERE,
-      base::BindOnce(&AppEventDelegate::ExecuteStepOnUIThread,
-                     base::Unretained(this), next_state, is_activating));
+  is_transitioning_ = false;
 }
 
 AppEventDelegate::ApplicationState AppEventDelegate::GetNextState(
@@ -321,60 +329,12 @@ void AppEventDelegate::ExecuteEventRunner(ApplicationState next_state,
         runner_->OnFreeze(base::DoNothing());
         break;
       case ApplicationState::kStopped:
+        runner_->OnStop();
         break;
       default:
         NOTREACHED();
     }
   }
-}
-
-void AppEventDelegate::ExecuteStepOnUIThread(ApplicationState next_state,
-                                             bool is_activating) {
-  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  {
-    base::AutoLock lock(lock_);
-    if (is_tearing_down_) {
-      LOG(INFO) << "Ignoring ExecuteStepOnUIThread during teardown.";
-      return;
-    }
-  }
-  // Note: ExecuteEventRunner does not change state nor rely on state of this
-  // object, and always runs as a posted task on the UI thread, and therefore
-  // the lock does not need to be held yet here.
-  ExecuteEventRunner(next_state, is_activating);
-
-  base::OnceClosure quit_closure;
-  bool should_execute_next_step = false;
-  {
-    base::AutoLock lock(lock_);
-    SetApplicationState(next_state);
-    if (next_state == ApplicationState::kStopped) {
-      quit_closure = std::move(quit_closure_);
-    } else {
-      should_execute_next_step = true;
-    }
-  }
-
-  if (quit_closure) {
-    std::move(quit_closure).Run();
-  }
-  if (should_execute_next_step) {
-    base::AutoLock lock(lock_);
-    ExecuteNextStep();
-  }
-}
-
-void AppEventDelegate::DoTeardown() {
-  {
-    base::AutoLock lock(lock_);
-    if (is_tearing_down_) {
-      return;
-    }
-    is_tearing_down_ = true;
-  }
-  runner_->OnStop();
-  base::AutoLock lock(lock_);
-  SetApplicationState(ApplicationState::kStopped);
 }
 
 void AppEventDelegate::TransitionToLifeCycleState(ApplicationState state) {
@@ -449,3 +409,30 @@ void AppEventDelegate::SetApplicationStateAnnotation(ApplicationState state) {
 }
 
 }  // namespace cobalt
+
+#if BUILDFLAG(IS_ANDROID)
+#include "cobalt/android/browser_jni_headers/AppEventBridge_jni.h"
+#include "starboard/event.h"
+
+void JNI_AppEventBridge_HandleLifecycleEvent(JNIEnv* env, jint type) {
+  SbEvent event;
+  event.type = static_cast<SbEventType>(type);
+  event.timestamp = 0;
+  event.data = nullptr;
+
+  static cobalt::AppEventDelegate* s_lifecycle_delegate =
+      new cobalt::AppEventDelegate();
+
+  if (!s_lifecycle_delegate) {
+    return;
+  }
+
+  if (event.type == kSbEventTypeStop) {
+    s_lifecycle_delegate->HandleEvent(&event);
+    delete s_lifecycle_delegate;
+    s_lifecycle_delegate = nullptr;
+  } else {
+    s_lifecycle_delegate->HandleEvent(&event);
+  }
+}
+#endif  // BUILDFLAG(IS_ANDROID)

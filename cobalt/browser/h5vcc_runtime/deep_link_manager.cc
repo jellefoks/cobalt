@@ -66,6 +66,9 @@ void DeepLinkManager::AddListener(
 
 void DeepLinkManager::OnDeepLink(const std::string& url) {
   CHECK_CALLED_ON_VALID_THREAD(thread_checker_);
+  if (url.empty()) {
+    return;
+  }
   if (listeners_.empty()) {
     // Deeplink is held until a callback is registered, at which point it will
     // be consumed."

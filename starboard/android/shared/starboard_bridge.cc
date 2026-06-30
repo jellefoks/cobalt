@@ -130,8 +130,9 @@ void JNI_StarboardBridge_HandleDeepLink(JNIEnv* env,
                                         jboolean applicationStarted) {
   // TODO(b/492704919): enable on AOSP when the layering violation is fixed.
 #if !BUILDFLAG(IS_PARTNER_TOOLCHAIN)
-  const std::string& url = ConvertJavaStringToUTF8(env, jurl);
-  LOG(INFO) << "StarboardBridge handling DeepLink: " << url;
+  std::string url = ConvertJavaStringToUTF8(env, jurl);
+  LOG(INFO) << "StarboardBridge handling DeepLink: " << url
+            << " (applicationStarted=" << applicationStarted << ")";
 
   auto* manager = cobalt::browser::DeepLinkManager::GetInstance();
   if (applicationStarted) {

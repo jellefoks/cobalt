@@ -164,7 +164,7 @@ void CrashHandlerHostLinux::Init() {
 }
 
 void CrashHandlerHostLinux::OnFileCanWriteWithoutBlocking(int fd) {
-  NOTREACHED();
+  // EPOLLHUP or EPOLLERR can trigger write callbacks on read-only watched sockets.
 }
 
 void CrashHandlerHostLinux::OnFileCanReadWithoutBlocking(int fd) {
@@ -637,7 +637,7 @@ void CrashHandlerHost::NotifyCrashSignalObservers(base::ProcessId pid,
 }
 
 void CrashHandlerHost::OnFileCanWriteWithoutBlocking(int fd) {
-  NOTREACHED();
+  // EPOLLHUP or EPOLLERR can trigger write callbacks on read-only watched sockets.
 }
 
 void CrashHandlerHost::OnFileCanReadWithoutBlocking(int fd) {

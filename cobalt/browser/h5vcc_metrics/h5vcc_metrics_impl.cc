@@ -45,15 +45,25 @@ void H5vccMetricsImpl::Create(
 void H5vccMetricsImpl::AddListener(
     ::mojo::PendingRemote<mojom::MetricsListener> listener) {
   CHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-  cobalt::GlobalFeatures::GetInstance()
-      ->metrics_services_manager_client()
+  auto* global_features = cobalt::GlobalFeatures::GetInstance();
+  if (!global_features || !global_features->metrics_services_manager_client() ||
+      !global_features->metrics_services_manager_client()
+           ->metrics_service_client()) {
+    return;
+  }
+  global_features->metrics_services_manager_client()
       ->metrics_service_client()
       ->SetMetricsListener(std::move(listener));
 }
 
 void H5vccMetricsImpl::Enable(bool enable, EnableCallback callback) {
   CHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-  auto global_features = cobalt::GlobalFeatures::GetInstance();
+  auto* global_features = cobalt::GlobalFeatures::GetInstance();
+  if (!global_features || !global_features->metrics_services_manager_client() ||
+      !global_features->metrics_services_manager()) {
+    std::move(callback).Run();
+    return;
+  }
   cobalt::CobaltEnabledStateProvider& enabled_state_provider =
       global_features->metrics_services_manager_client()
           ->GetEnabledStateProvider();
@@ -66,8 +76,14 @@ void H5vccMetricsImpl::SetMetricEventInterval(
     uint64_t interval_seconds,
     SetMetricEventIntervalCallback callback) {
   CHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-  cobalt::GlobalFeatures::GetInstance()
-      ->metrics_services_manager_client()
+  auto* global_features = cobalt::GlobalFeatures::GetInstance();
+  if (!global_features || !global_features->metrics_services_manager_client() ||
+      !global_features->metrics_services_manager_client()
+           ->metrics_service_client()) {
+    std::move(callback).Run();
+    return;
+  }
+  global_features->metrics_services_manager_client()
       ->metrics_service_client()
       ->SetUploadInterval(base::Seconds(interval_seconds));
   std::move(callback).Run();
@@ -75,8 +91,14 @@ void H5vccMetricsImpl::SetMetricEventInterval(
 
 void H5vccMetricsImpl::RequestHistograms(RequestHistogramsCallback callback) {
   CHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-  auto* manager_client =
-      cobalt::GlobalFeatures::GetInstance()->metrics_services_manager_client();
+  auto* global_features = cobalt::GlobalFeatures::GetInstance();
+  if (!global_features || !global_features->metrics_services_manager_client() ||
+      !global_features->metrics_services_manager_client()
+           ->metrics_service_client()) {
+    std::move(callback).Run({});
+    return;
+  }
+  auto* manager_client = global_features->metrics_services_manager_client();
   std::move(callback).Run(histogram_fetcher_.FetchHistograms(
       manager_client->GetMetricsStateManager(),
       manager_client->metrics_service_client()));
