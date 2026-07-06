@@ -140,12 +140,6 @@ class AppEventDelegate {
   // transition reaches its target state.
   void ExecuteNextStep() EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
-  // Executes the actual side effects of a single linear transition step (such
-  // as calling runner callbacks and routing frame visibility/focus) on the UI
-  // thread. If required by the step (e.g., concealing or unfreezing), it
-  // initiates Mojo ACK tracking with the renderers and sets up pending ACK
-  // expectations.
-  LOCKS_EXCLUDED(lock_);
 
   // Helpers to reduce duplication.
   ApplicationState GetNextState(ApplicationState current_state,

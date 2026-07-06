@@ -592,8 +592,6 @@ public abstract class CobaltActivity extends Activity {
       mFreezeRunnable = null;
     }
     AppEventBridge.handleLifecycleEvent(StarboardBridge.kSbEventTypeStart);
-    // visibility:visible event
-    updateShellActivityVisible(mWasDisplayOn);
     MemoryPressureMonitor.INSTANCE.enablePolling(false);
 
     StartupGuard.getInstance().setStartupMilestone(11);
@@ -611,9 +609,6 @@ public abstract class CobaltActivity extends Activity {
     unregisterDisplayListener();
     getStarboardBridge().onActivityStop(this);
     super.onStop();
-
-    // visibility:hidden event
-    updateShellActivityVisible(false);
 
     AppEventBridge.handleLifecycleEvent(StarboardBridge.kSbEventTypeConceal);
 
@@ -904,12 +899,6 @@ public abstract class CobaltActivity extends Activity {
     }
   }
 
-  private void updateShellActivityVisible(boolean isVisible) {
-    if (mShellManager != null) {
-      mShellManager.onActivityVisible(isVisible);
-    }
-  }
-
   private boolean isDisplayOn() {
     Display defaultDisplay = DisplayUtil.getDefaultDisplay();
     if (defaultDisplay == null) {
@@ -931,7 +920,6 @@ public abstract class CobaltActivity extends Activity {
     if (isDisplayOn != mWasDisplayOn) {
       mWasDisplayOn = isDisplayOn;
       Log.i(TAG, "Display state changed: isDisplayOn = " + isDisplayOn);
-      updateShellActivityVisible(isDisplayOn);
     }
   }
 

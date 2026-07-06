@@ -444,6 +444,8 @@ void CobaltLifecycleManager::StartWaitingForAck(
     content::WebContents* web_contents,
     PendingAck ack_type) {
   CHECK_CALLED_ON_VALID_THREAD(thread_checker_);
+  LOG(INFO) << "CobaltLifecycleManager::StartWaitingForAck called for web_contents=" 
+            << web_contents << " ack_type=" << static_cast<int>(ack_type);
   pending_acks_[web_contents] = ack_type;
 
   auto* tracker = GetOrCreateTracker(web_contents);

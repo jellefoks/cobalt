@@ -1169,10 +1169,14 @@ void RenderWidgetHostViewAndroid::OnRootScrollOffsetChanged(
 }
 
 void RenderWidgetHostViewAndroid::Focus() {
+#if BUILDFLAG(IS_COBALT)
+  GotFocus();
+#else
   if (view_.HasFocus())
     GotFocus();
   else
     view_.RequestFocus();
+#endif
 }
 
 void RenderWidgetHostViewAndroid::OnFocusInternal() {

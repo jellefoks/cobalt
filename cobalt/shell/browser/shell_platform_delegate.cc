@@ -127,6 +127,9 @@ void ShellPlatformDelegate::OnFocus() {
 }
 
 void ShellPlatformDelegate::OnConceal() {
+  LOG(INFO) << "ShellPlatformDelegate::OnConceal called. IsVisible()="
+            << IsVisible()
+            << ", Shell::windows().size()=" << Shell::windows().size();
   if (!IsVisible()) {
     return;
   }
@@ -181,6 +184,8 @@ void ShellPlatformDelegate::OnReveal() {
 }
 
 void ShellPlatformDelegate::OnFreeze() {
+  LOG(INFO) << "ShellPlatformDelegate::OnFreeze called. IsVisible()="
+            << IsVisible();
   CHECK(!IsVisible());
 
   // In frozen state the process may not be scheduled for execution, so we
@@ -316,6 +321,9 @@ void ShellPlatformDelegate::OnAllFramesVisible(
 void ShellPlatformDelegate::OnAllFramesConcealed(
     content::WebContents* web_contents) {
   Shell* shell = Shell::FromWebContents(web_contents);
+  LOG(INFO)
+      << "ShellPlatformDelegate::OnAllFramesConcealed called. web_contents="
+      << web_contents << " shell=" << shell;
   if (shell) {
     ConcealShell(shell);
   }

@@ -64,6 +64,7 @@
 #include "components/prefs/pref_service_factory.h"
 #include "components/variations/pref_names.h"
 #include "components/variations/service/variations_service.h"
+#include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_process_host.h"
@@ -542,8 +543,13 @@ void CobaltContentBrowserClient::FlushCookiesAndLocalStorage(
   auto* web_contents = web_contents_observer_->web_contents();
   CHECK(web_contents);
   content::RenderFrameHost* rfh = web_contents->GetPrimaryMainFrame();
-  CHECK(rfh);
-  auto* storage_partition = rfh->GetStoragePartition();
+  if (!rfh) {
+    LOG(WARNING) << "FlushCookiesAndLocalStorage: Primary main frame is null. "
+                    "Getting storage partition from BrowserContext.";
+  }
+  auto* browser_context = web_contents->GetBrowserContext();
+  CHECK(browser_context);
+  auto* storage_partition = browser_context->GetDefaultStoragePartition();
   CHECK(storage_partition);
   // Flushes localStorage.
   storage_partition->Flush();

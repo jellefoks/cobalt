@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "base/android/input_hint_checker.h"
+#include "base/auto_reset.h"
 #include "base/android/jni_android.h"
 #include "base/android/scoped_java_ref.h"
 #include "base/check.h"
@@ -535,6 +536,7 @@ void MessagePumpAndroid::Run(Delegate* delegate) {
   // which avoids libutils.so re-entrancy crashes while guaranteeing clean,
   // synchronous completion of Chromium tasks.
   SetDelegate(delegate);
+  base::AutoReset<bool> auto_reset_quit(&quit_, false);
   while (!ShouldQuit()) {
     Delegate::NextWorkInfo next_work_info = delegate_->DoWork();
     if (ShouldQuit()) {
@@ -583,8 +585,14 @@ void MessagePumpAndroid::Quit() {
   read(non_delayed_fd_, &value, sizeof(value));
 
   if (run_loop_) {
+#if BUILDFLAG(IS_COBALT)
+    if (!base::RunLoop::IsNestedOnCurrentThread()) {
+#endif
     run_loop_->AfterRun();
     run_loop_ = nullptr;
+#if BUILDFLAG(IS_COBALT)
+    }
+#endif
   }
   if (on_quit_callback_) {
     std::move(on_quit_callback_).Run();
