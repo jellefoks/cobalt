@@ -43,12 +43,11 @@
 #include "cobalt/browser/h5vcc_accessibility/h5vcc_accessibility_manager.h"
 #include "cobalt/browser/h5vcc_runtime/deep_link_manager.h"
 #include "cobalt/shell/browser/shell.h"
+#include "content/public/app/content_main.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/network_service_instance.h"
 #include "net/base/network_change_notifier_passive.h"
-
 #if !BUILDFLAG(IS_ANDROID)
-#include "content/public/app/content_main.h"
 #include "content/public/app/content_main_runner.h"
 #endif
 
@@ -109,6 +108,10 @@ class AppEventRunnerImpl : public AppEventRunner,
     content_main_delegate_ = std::make_unique<cobalt::CobaltMainDelegate>(
         startup_timestamp, initial_deep_link,
         false /* is_content_browsertests */, is_visible);
+#else
+    content::SetContentMainDelegate(new cobalt::CobaltMainDelegate(
+        startup_timestamp, initial_deep_link,
+        false /* is_content_browsertests */, is_visible));
 #endif
   }
 

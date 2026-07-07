@@ -19,11 +19,15 @@ import org.jni_zero.NativeMethods;
 /** Bridge to pass application lifecycle events directly to Cobalt's AppEventDelegate. */
 public class AppEventBridge {
   public static void handleLifecycleEvent(int type) {
-    AppEventBridgeJni.get().handleLifecycleEvent(type);
+    AppEventBridgeJni.get().handleLifecycleEvent(type, null);
+  }
+
+  public static void handleLifecycleEvent(int type, String link) {
+    AppEventBridgeJni.get().handleLifecycleEvent(type, link);
   }
 
   @NativeMethods
   interface Natives {
-    void handleLifecycleEvent(int type);
+    void handleLifecycleEvent(int type, String link);
   }
 }
