@@ -415,25 +415,31 @@ void AppEventDelegate::SetApplicationStateAnnotation(ApplicationState state) {
 #include "cobalt/android/browser_jni_headers/AppEventBridge_jni.h"
 #include "starboard/event.h"
 
-void JNI_AppEventBridge_HandleLifecycleEvent(
-    JNIEnv* env,
-    jint type,
-    const base::android::JavaParamRef<jstring>& jlink) {
+void JNI_AppEventBridge_HandleLifecycleEvent(JNIEnv* env, jint type) {
   SbEvent event;
   event.type = static_cast<SbEventType>(type);
+  event.timestamp = 0;
+  event.data = nullptr;
+
+  SbEventHandle(&event);
+}
+
+void JNI_AppEventBridge_HandleStartEvent(
+    JNIEnv* env,
+    const base::android::JavaParamRef<jstring>& jlink) {
+  SbEvent event;
+  event.type = kSbEventTypeStart;
   event.timestamp = 0;
 
   std::string link_str;
   SbEventStartData start_data = {};
-  if (type == kSbEventTypeStart && jlink) {
+  if (jlink) {
     link_str = base::android::ConvertJavaStringToUTF8(env, jlink);
     if (!link_str.empty()) {
       start_data.link = link_str.c_str();
     }
-    event.data = &start_data;
-  } else {
-    event.data = nullptr;
   }
+  event.data = &start_data;
 
   SbEventHandle(&event);
 }

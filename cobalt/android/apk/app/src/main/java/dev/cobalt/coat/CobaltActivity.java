@@ -298,7 +298,7 @@ public abstract class CobaltActivity extends Activity {
 
     StartupGuard.getInstance().setStartupMilestone(8);
     // TODO(b/377025559): Bring back WebTests launch capability
-    AppEventBridge.handleLifecycleEvent(StarboardBridge.kSbEventTypeStart, mStartDeepLink);
+    AppEventBridge.handleStartEvent(mStartDeepLink);
     BrowserStartupController.getInstance()
         .startBrowserProcessesAsync(
             LibraryProcessType.PROCESS_BROWSER,
