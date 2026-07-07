@@ -174,8 +174,7 @@ if (is_ios && target_platform == "tvos") {
   }
   target(cobalt_target_type, "cobalt") {
     testonly = true
-
-    sources = [ "app/cobalt.cc" ]
+    sources = []
 
     configs += [ "//build/config/gcc:rpath_for_built_shared_libraries" ]
 
@@ -221,6 +220,7 @@ source_set("common") {
     "app/app_event_delegate.h",
     "app/app_event_runner.cc",
     "app/app_event_runner.h",
+    "app/cobalt.cc",
     "app/cobalt_crash_reporter_client.cc",
     "app/cobalt_crash_reporter_client.h",
     "app/cobalt_main_delegate.cc",

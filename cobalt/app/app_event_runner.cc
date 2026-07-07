@@ -114,7 +114,9 @@ class AppEventRunnerImpl : public AppEventRunner,
 
   std::vector<content::WebContents*> GetWebContents() override {
     std::vector<content::WebContents*> result;
-    LOG(INFO) << "AppEventRunner::GetWebContents called. Shell::windows().size()=" << content::Shell::windows().size();
+    LOG(INFO)
+        << "AppEventRunner::GetWebContents called. Shell::windows().size()="
+        << content::Shell::windows().size();
     for (auto* shell : content::Shell::windows()) {
       result.push_back(shell->web_contents());
     }
@@ -424,7 +426,8 @@ class AppEventRunnerImpl : public AppEventRunner,
       }
     } else {
       auto web_contents_list = GetWebContents();
-      LOG(INFO) << "AppEventRunner::WaitForAck for ack_type=" << static_cast<int>(ack_type)
+      LOG(INFO) << "AppEventRunner::WaitForAck for ack_type="
+                << static_cast<int>(ack_type)
                 << ", GetWebContents().size()=" << web_contents_list.size();
       for (auto* web_contents : web_contents_list) {
         CobaltLifecycleManager::GetInstance()->StartWaitingForAck(web_contents,

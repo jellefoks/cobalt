@@ -49,7 +49,7 @@ void SbEventHandle(const SbEvent* event) {
   }
 }
 
-#if !BUILDFLAG(IS_COBALT_HERMETIC_BUILD)
+#if !BUILDFLAG(IS_COBALT_HERMETIC_BUILD) && !BUILDFLAG(IS_ANDROID)
 int main(int argc, char** argv) {
   return SbRunStarboardMain(argc, argv, SbEventHandle);
 }

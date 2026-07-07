@@ -140,7 +140,6 @@ class AppEventDelegate {
   // transition reaches its target state.
   void ExecuteNextStep() EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
-
   // Helpers to reduce duplication.
   ApplicationState GetNextState(ApplicationState current_state,
                                 bool is_activating) const;

@@ -420,19 +420,6 @@ void JNI_AppEventBridge_HandleLifecycleEvent(JNIEnv* env, jint type) {
   event.timestamp = 0;
   event.data = nullptr;
 
-  static cobalt::AppEventDelegate* s_lifecycle_delegate =
-      new cobalt::AppEventDelegate();
-
-  if (!s_lifecycle_delegate) {
-    return;
-  }
-
-  if (event.type == kSbEventTypeStop) {
-    s_lifecycle_delegate->HandleEvent(&event);
-    delete s_lifecycle_delegate;
-    s_lifecycle_delegate = nullptr;
-  } else {
-    s_lifecycle_delegate->HandleEvent(&event);
-  }
+  SbEventHandle(&event);
 }
 #endif  // BUILDFLAG(IS_ANDROID)
