@@ -19,11 +19,6 @@
 #include "starboard/event.h"
 
 void SbEventHandle(const SbEvent* event) {
-  // This object's lifetime extends beyond the function's lifetime, until the
-  // function is called with kSbEventTypeStop at some time in the future.
-  // When the application is stopped, this object is destroyed and the pointer
-  // is reset to nullptr, to ensure that any spurious events received after the
-  // application is stopped are ignored.
   static cobalt::AppEventDelegate* s_lifecycle_delegate =
       new cobalt::AppEventDelegate();
 
@@ -46,6 +41,15 @@ void SbEventHandle(const SbEvent* event) {
     s_lifecycle_delegate->DoTeardown();
     delete s_lifecycle_delegate;
     s_lifecycle_delegate = nullptr;
+  } else if (event->type == kSbEventTypeFreeze) {
+    // Wait for the Freeze transition to complete natively before
+    // allowing SbEventHandle to return, ensuring event callbacks
+    // (such as FreezeDone) are invoked only after Cobalt has truly
+    // reached the frozen state and released its resources.
+    base::RunLoop run_loop;
+    s_lifecycle_delegate->SetQuitClosure(run_loop.QuitClosure());
+    s_lifecycle_delegate->HandleEvent(event);
+    run_loop.Run();
   } else {
     s_lifecycle_delegate->HandleEvent(event);
   }

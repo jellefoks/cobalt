@@ -402,6 +402,21 @@ bool GLContextEGL::InitializeImpl(GLSurface* compatible_surface,
     }
   }
 
+  if (!context_ && (error == EGL_BAD_DISPLAY || error == EGL_BAD_ALLOC)) {
+    auto gl_display_egl = gl_display_->GetAs<gl::GLDisplayEGL>();
+    if (gl_display_egl) {
+      // Cobalt natively drops the connection on Conceal. 
+      // Resurrect it gracefully here by refreshing the native server connection 
+      // without destroying the Chromium Object.
+      auto native_display = gl_display_egl->GetNativeDisplay();
+      std::vector<gl::DisplayType> init_displays = { gl_display_egl->GetDisplayType() };
+      bool supports_angle = (GetGLImplementationParts().gl == kGLImplementationEGLANGLE);
+
+      gl_display_egl->Shutdown();
+      gl_display_egl->Initialize(supports_angle, init_displays, native_display);
+    }
+  }
+
   LOG(ERROR) << "eglCreateContext failed with error "
              << GetEGLErrorString(error);
   return false;

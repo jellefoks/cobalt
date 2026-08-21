@@ -403,8 +403,24 @@ bool NativeViewGLSurfaceEGL::Initialize(GLSurfaceFormat format) {
                                     window_, &egl_window_attributes[0]);
 
   if (!surface_) {
+    EGLint error = eglGetError();
+    if (error == EGL_BAD_ALLOC || error == EGL_BAD_DISPLAY) {
+      auto gl_display_egl = display_->GetAs<gl::GLDisplayEGL>();
+      if (gl_display_egl) {
+        // Cobalt natively drops the connection on Conceal. 
+        // Resurrect it gracefully here by refreshing the native server connection 
+        // without destroying the Chromium Object.
+        auto native_display = gl_display_egl->GetNativeDisplay();
+        std::vector<gl::DisplayType> init_displays = { gl_display_egl->GetDisplayType() };
+        bool supports_angle = (GetGLImplementationParts().gl == kGLImplementationEGLANGLE);
+
+        gl_display_egl->Shutdown();
+        gl_display_egl->Initialize(supports_angle, init_displays, native_display);
+      }
+    }
+
     LOG(ERROR) << "eglCreateWindowSurface failed with error "
-               << GetLastEGLErrorString();
+               << ui::GetEGLErrorString(error);
     Destroy();
     return false;
   }
