@@ -32,6 +32,7 @@
 #include "base/no_destructor.h"
 #include "base/run_loop.h"
 #include "base/synchronization/lock.h"
+#include "base/task/bind_post_task.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/threading/platform_thread.h"
 #include "base/threading/thread_restrictions.h"
@@ -48,6 +49,7 @@
 #include "cobalt/shell/browser/shell.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/network_service_instance.h"
+#include "content/public/browser/render_process_host.h"
 #include "net/base/network_change_notifier_passive.h"
 
 #if !BUILDFLAG(IS_ANDROID)
@@ -68,10 +70,10 @@
 namespace cobalt {
 
 namespace {
-// A timeout of 2 seconds was chosen to be long enough to allow for any
-// normal operations to complete, but short enough to avoid unnecessary
-// user-perceived delays.
-constexpr base::TimeDelta kTransitionTimeout = base::Seconds(2);
+// A transition timeout of 5 seconds allows for any normal frame ACKs or
+// asynchronous GPU cleanup sequences to complete following
+// CobaltLifecycleManager's 2-second frame timeout.
+constexpr base::TimeDelta kTransitionTimeout = base::Seconds(5);
 }  // namespace
 
 #if !BUILDFLAG(IS_ANDROID)
@@ -145,9 +147,26 @@ class AppEventRunnerImpl : public AppEventRunner,
   }
 
   void DoStop() override {
+    base::ScopedAllowBaseSyncPrimitivesOutsideBlockingScope allow_blocking;
+
     content::Shell::OnStop();
 
     content::Shell::Shutdown();
+
+    // Drain and wait for the in-process renderer thread to finish executing
+    // any pending tasks before initiating browser and delegate shutdown.
+    auto renderer_task_runner =
+        content::RenderProcessHost::GetInProcessRendererThreadTaskRunner();
+    if (renderer_task_runner) {
+      base::RunLoop run_loop(base::RunLoop::Type::kNestableTasksAllowed);
+      base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
+          FROM_HERE, run_loop.QuitClosure(), base::Seconds(2));
+      renderer_task_runner->PostTask(
+          FROM_HERE,
+          base::BindPostTask(base::SingleThreadTaskRunner::GetCurrentDefault(),
+                             run_loop.QuitClosure()));
+      run_loop.Run();
+    }
 
     base::RunLoop().RunUntilIdle();
 
@@ -167,11 +186,6 @@ class AppEventRunnerImpl : public AppEventRunner,
     }
 #endif
 
-    // Flush all open stdio streams before the process exits.
-    std::fflush(nullptr);
-
-    // Destroy only after main_runner_/ContentMainRunnerImpl is shutdown
-    // as the delegate is used internally.
     content_main_delegate_.reset();
     exit_manager_.reset();
 
